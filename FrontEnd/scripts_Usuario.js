@@ -27,7 +27,13 @@ async function cargarDatosUsuario(correo) {
     const res = await fetch(
       `${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`
     );
-    const data = await res.json();
+    const data = await safeJson(res);
+
+    if (!data || data._htmlError) {
+      if (contDatos) contDatos.textContent = "El backend no está público o devolvió HTML.";
+      console.error("Apps Script devolvió HTML en usuario.");
+      return;
+    }
 
     if (!data.ok) {
       if (contDatos) contDatos.textContent = "No se encontró tu información.";
@@ -56,5 +62,19 @@ async function cargarDatosUsuario(correo) {
   } catch (err) {
     console.error("Error obteniendo usuario:", err);
     if (contDatos) contDatos.textContent = "Error al cargar datos.";
+  }
+}
+
+// mismo helper que en index
+async function safeJson(res) {
+  const text = await res.text();
+  if (text.trim().startsWith("<")) {
+    return { _htmlError: true, raw: text };
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("No es JSON válido:", text);
+    return null;
   }
 }

@@ -8,21 +8,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnShowRegister = document.querySelector("#btn-show-register");
   const btnBackLogin = document.querySelector("#btn-back-login");
 
-  // ir a registro (flip)
   if (btnShowRegister && card) {
     btnShowRegister.addEventListener("click", () => {
       card.classList.add("is-flipped");
     });
   }
 
-  // volver a login
   if (btnBackLogin && card) {
     btnBackLogin.addEventListener("click", () => {
       card.classList.remove("is-flipped");
     });
   }
 
-  /* ===== LOGIN ===== */
+  // ===== LOGIN =====
   const loginForm = document.querySelector("#login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
@@ -35,30 +33,18 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1) intentar como usuario
+      // 1) probar como usuario
       const usuario = await loginUsuario(username, password);
       if (usuario) {
-        localStorage.setItem(
-          "sesionActual",
-          JSON.stringify({
-            tipo: "usuario",
-            ...usuario
-          })
-        );
+        localStorage.setItem("sesionActual", JSON.stringify({ tipo: "usuario", ...usuario }));
         window.location.href = "usuario.html";
         return;
       }
 
-      // 2) intentar como guardia
+      // 2) probar como guardia
       const guardia = await loginGuardia(username, password);
       if (guardia) {
-        localStorage.setItem(
-          "sesionActual",
-          JSON.stringify({
-            tipo: "guardia",
-            ...guardia
-          })
-        );
+        localStorage.setItem("sesionActual", JSON.stringify({ tipo: "guardia", ...guardia }));
         window.location.href = "guardia.html";
         return;
       }
@@ -67,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ===== REGISTRO ===== */
+  // ===== REGISTRO =====
   const registerForm = document.querySelector("#register-form");
   if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
@@ -82,15 +68,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const resp = await registrarUsuarioEnBackend({
-        nombre,
-        apellido,
-        correo,
-        password
-      });
+      const resp = await registrarUsuarioEnBackend({ nombre, apellido, correo, password });
+
+      // si vuelve error de despliegue
+      if (resp._htmlError) {
+        console.error("Apps Script devolvió HTML. Publica el Web App como 'Cualquiera con el enlace'.");
+        alert("El backend no está publicado como Web App público. Revisa Apps Script.");
+        return;
+      }
 
       if (resp?.ok) {
-        alert("Usuario creado en Mongo. QR: " + (resp.qrToken || "generado"));
+        // solo mostramos el QR si realmente lo mandó el backend
+        const qrMostrable = resp.qrToken ? ` QR: ${resp.qrToken}` : "";
+        alert("Usuario creado en Mongo." + qrMostrable);
         if (card) card.classList.remove("is-flipped");
       } else {
         alert(resp?.message || "No se pudo crear el usuario (¿está en la nómina?).");
@@ -101,26 +91,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ======================= FUNCIONES =======================
 
+// login de usuario
 async function loginUsuario(correoInput, passInput) {
   try {
-    const res = await fetch(
-      `${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correoInput)}`
-    );
-    const data = await res.json();
-    if (!data.ok || !data.data) return null;
+    const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correoInput)}`);
+    const data = await safeJson(res);
+    if (!data || !data.ok || !data.data) return null;
 
     const u = data.data;
-    const vigenteOK =
-      !u.vigente ||
-      u.vigente === "SI" ||
-      u.vigente === "si" ||
-      u.vigente === "true";
+    const vigenteOK = !u.vigente || u.vigente === "SI" || u.vigente === "si" || u.vigente === "true";
 
-    if (
-      u.correo?.toLowerCase() === correoInput.toLowerCase() &&
-      u.password === passInput &&
-      vigenteOK
-    ) {
+    if (u.correo?.toLowerCase() === correoInput.toLowerCase() && u.password === passInput && vigenteOK) {
       return u;
     }
     return null;
@@ -130,11 +111,12 @@ async function loginUsuario(correoInput, passInput) {
   }
 }
 
+// login de guardia
 async function loginGuardia(correoInput, passInput) {
   try {
     const res = await fetch(`${API_URL}?action=getGuards`);
-    const data = await res.json();
-    if (!data.ok || !Array.isArray(data.data)) return null;
+    const data = await safeJson(res);
+    if (!data || !data.ok || !Array.isArray(data.data)) return null;
 
     const encontrado = data.data.find((g) => {
       const correo = (g.correo || "").toLowerCase().trim();
@@ -151,23 +133,34 @@ async function loginGuardia(correoInput, passInput) {
   }
 }
 
-// createUser -> Apps Script -> valida en "Nomina Trabajadores" -> Mongo
+// crear usuario pero evitando preflight y detectando HTML
 async function registrarUsuarioEnBackend(payload) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      // text/plain para evitar preflight de CORS
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "createUser",
-        ...payload
-      })
+      body: JSON.stringify({ action: "createUser", ...payload })
     });
-    // como es text/plain igual podemos leerlo
-    const data = await res.json();
+
+    const data = await safeJson(res);
     return data;
   } catch (err) {
     console.error("Error registrando usuario:", err);
     return { ok: false, message: "Error de red" };
+  }
+}
+
+// helper: intenta parsear JSON, si no, marca que vino HTML
+async function safeJson(res) {
+  const text = await res.text();
+  if (text.trim().startsWith("<")) {
+    // esto es HTML -> no está publicado el Web App
+    return { _htmlError: true, raw: text };
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("No es JSON válido:", text);
+    return null;
   }
 }

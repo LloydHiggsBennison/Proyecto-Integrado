@@ -28,17 +28,22 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const ok = await registrarEntrega({
+      const resp = await registrarEntrega({
         qrToken: qr,
         nombreGuardia: sesion.nombre || "",
         apellidoGuardia: sesion.apellido || "",
         correoGuardia: sesion.correo || ""
       });
 
-      if (ok) {
+      if (resp._htmlError) {
+        mostrarMensaje(panel, "El backend devolvió HTML (publica el Web App).", "error");
+        return;
+      }
+
+      if (resp.ok) {
         mostrarMensaje(panel, "Entrega registrada en Mongo.", "success");
       } else {
-        mostrarMensaje(panel, "No se pudo registrar (¿QR ya usado?).", "error");
+        mostrarMensaje(panel, resp.message || "No se pudo registrar (¿QR ya usado?).", "error");
       }
 
       inputQR.value = "";
@@ -58,16 +63,29 @@ async function registrarEntrega(payload) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // <- sin preflight
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "logEntrega",
         ...payload
       })
     });
-    const data = await res.json();
-    return data.ok === true;
+    const data = await safeJson(res);
+    return data;
   } catch (err) {
     console.error("Error registrando entrega:", err);
-    return false;
+    return { ok: false, message: "Error de red" };
+  }
+}
+
+async function safeJson(res) {
+  const text = await res.text();
+  if (text.trim().startsWith("<")) {
+    return { _htmlError: true, raw: text };
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("No es JSON válido:", text);
+    return { ok: false, message: "Respuesta no JSON" };
   }
 }
