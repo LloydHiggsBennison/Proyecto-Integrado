@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel del Guardia</title>
+  <link rel="stylesheet" href="styles_Guardias.css" />
+</head>
+<body>
+  <header>
+    <h1>Hola!, Guardia 👋</h1>
+    <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="main-content">
+    <h2>Panel de operaciones</h2>
+    <p>Escanea primero el QR del trabajador (correo) y luego el de la caja.</p>
+
+    <section class="button-grid">
+      <button id="button1" class="btn-action">
+        <span>Escanear trabajador + caja</span>
+        <span>📷</span>
+      </button>
+      <button id="button2" class="btn-action">
+        <span>Ver instrucciones</span>
+        <span>📄</span>
+      </button>
+      <button id="button3" class="btn-action">
+        <span>Administrar</span>
+        <span>⚙</span>
+      </button>
+    </section>
+  </main>
+
+  <script>
+    function cerrarSesion() {
+      localStorage.removeItem("sesionActual");
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="scripts_Guardias.js"></script>
+</body>
+</html>

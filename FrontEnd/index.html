@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Entrega de Beneficios - Login</title>
+  <link rel="stylesheet" href="styles_index.css" />
+ 
+</head>
+<body>
+  <div class="scene">
+    <div class="card3d" id="card3d">
+      <!-- FRONT: LOGIN -->
+      <section class="side front" id="login-side">
+        <div class="form">
+          <h1>Bienvenido 👋</h1>
+          <p class="subtitle">Ingresa con tu correo registrado.</p>
+          <form id="login-form">
+            <div>
+              <label for="username">Correo</label>
+              <input id="username" name="username" type="email" required autocomplete="username" />
+            </div>
+            <div>
+              <label for="password">Contraseña</label>
+              <input id="password" name="password" type="password" required autocomplete="current-password" />
+            </div>
+            <button type="submit" class="primary-btn">Iniciar sesión</button>
+          </form>
+          <p style="font-size:0.8rem;">¿No tienes cuenta?
+            <button type="button" id="btn-show-register" class="ghost-btn" style="background:none;border:none;color:#2563eb;cursor:pointer;padding:0;">Crear cuenta</button>
+          </p>
+          <p class="footer">Sistema de entrega de beneficios · v1.0</p>
+        </div>
+        <div class="info">
+          <h2>Control rápido de beneficios</h2>
+          <p>Por favor inicia sesión, si no tienes una, registrate con el botón "Crear cuenta".</p>
+          <p style="font-size:0.7rem;opacity:.7;">¿Guardia? Inicia sesión con tu correo corporativo.</p>
+        </div>
+      </section>
+
+      <!-- BACK: REGISTRO -->
+<section class="side back" id="register-side">
+  <div class="info">
+    <h2>¿Ya tienes una cuenta?</h2>
+    <p>Vuelve al inicio de sesión para acceder a tu panel de trabajador o de guardia.</p>
+    <button type="button" id="btn-back-login">Volver al login</button>
+  </div>
+  <div class="form">
+    <div class="form-inner">
+      <h1>Crear usuario</h1>
+      <p class="subtitle">Por favor rellena los campos.</p>
+      <form id="register-form">
+        <div>
+          <label for="reg-correo">Correo</label>
+          <input id="reg-correo" type="email" required />
+        </div>
+        <div>
+          <label for="reg-password">Contraseña</label>
+          <input id="reg-password" type="password" required />
+        </div>
+        <button type="submit" class="primary-btn">Guardar usuario</button>
+      </form>
+      <p class="footer">Tus datos se guardan automaticamente y la informacion esta cifrada de extremo a extremo.</p>
+    </div>
+  </div>
+</section>
+
+    </div>
+  </div>
+
+  <script src="scripts_index.js"></script>
+</body>
+</html>

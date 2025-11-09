@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Trabajador</title>
+  <link rel="stylesheet" href="styles_Usuario.css" />
+
+</head>
+<body>
+  <header>
+    <h1>Hola!, Usuario 👋</h1>
+    <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="main-content">
+    <h2>Tu panel</h2>
+    <p>Desde aquí puedes ver tu código QR, tu perfil y el estado de tu beneficio.</p>
+
+    <section class="button-grid">
+      <button id="button1" class="btn-action">
+        <span>Mostrar mi código QR</span>
+        <span>→</span>
+      </button>
+      <button id="button2" class="btn-action">
+        <span>Estado de mi entrega</span>
+        <span>→</span>
+      </button>
+      <button id="button3" class="btn-action">
+        <span>Mi perfil</span>
+        <span>→</span>
+      </button>
+      <button id="button4" class="btn-action">
+        <span>Configuración</span>
+        <span>→</span>
+      </button>
+    </section>
+
+    <!-- el JS inyecta #panel-usuario -->
+  </main>
+
+  <script>
+    function cerrarSesion() {
+      localStorage.removeItem("sesionActual");
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="scripts_Usuario.js"></script>
+</body>
+</html>

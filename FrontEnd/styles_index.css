@@ -1,0 +1,147 @@
+:root {
+    --card-width: 900px;
+    --card-height: 460px;
+    --blue: #2563eb;
+    --bg: #f3f4f6;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 1rem;
+  }
+  .scene {
+    width: 100%;
+    max-width: var(--card-width);
+    height: var(--card-height);
+    perspective: 1400px;
+  }
+  .card3d {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.7s ease;
+  }
+  .card3d.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    display: grid;
+    grid-template-columns: 0.42fr 0.58fr; /* un poco más de espacio al formulario */
+    overflow: hidden;
+  }
+
+  /* panel azul */
+  .side .info {
+    background: radial-gradient(circle at top, #1d4ed8 0%, #0f172a 100%);
+    color: #fff;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    justify-content: center;
+    border-right: 1px solid rgba(15,23,42,0.14); /* separador limpio */
+  }
+  .side .info h2 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .side .info p {
+    color: rgba(255,255,255,0.8);
+    line-height: 1.4;
+  }
+  .side .info button {
+    background: rgba(248, 250, 252, 0.12);
+    border: 1px solid rgba(248, 250, 252, 0.25);
+    border-radius: 9999px;
+    padding: 0.4rem 1.1rem;
+    color: #fff;
+    cursor: pointer;
+    width: fit-content;
+    font-size: 0.8rem;
+  }
+
+  /* panel de formulario */
+  .side .form {
+    padding: 2.5rem 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .form-inner {
+    width: 100%;
+    max-width: 360px; /* para que los inputs no se peguen al borde */
+  }
+  .side .form h1 {
+    font-size: 1.35rem;
+    margin-bottom: 0.4rem;
+  }
+  .side .form p.subtitle {
+    margin: 0 0 1.1rem;
+    color: #6b7280;
+  }
+  label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+  }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.7rem;
+  }
+  .primary-btn {
+    background: var(--blue);
+    border: none;
+    color: #fff;
+    padding: 0.6rem 0.7rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.15s;
+    width: 100%;
+  }
+  .primary-btn:hover {
+    background: #1d4ed8;
+  }
+  .footer {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  .back {
+    transform: rotateY(180deg);
+  }
+
+  /* responsive */
+  @media (max-width: 850px) {
+    .side {
+      grid-template-columns: 1fr;
+    }
+    .side .info {
+      display: none;
+    }
+    .side .form {
+      padding: 2rem 1.25rem;
+    }
+    .form-inner {
+      max-width: none;
+    }
+  }
