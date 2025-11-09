@@ -1,7 +1,6 @@
 {
   "name": "proyecto-integrado-backend",
   "version": "1.0.0",
-  "description": "API para Proyecto Integrado",
   "main": "server.js",
   "type": "module",
   "scripts": {
