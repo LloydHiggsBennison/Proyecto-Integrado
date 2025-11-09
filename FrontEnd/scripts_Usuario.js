@@ -1,6 +1,6 @@
 // ======================= CONFIGURACIÓN =======================
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxNoGCpf7zxUkk0KnfZJfvn1jUqpqlECmnVZaI_GFRDeUhunZfUikrt-7Y-lwurzqJBZw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwr_1dpus1K7LYEe3yXg6wWnRIyvyNG-OlmkzsDgukfyFbEe6zH98Wzuizqnn6J-GObwQ/exec";
 
 // ======================= INICIO =======================
 
@@ -13,12 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // saludo en el header
   document.querySelector("h1").textContent = `Hola!, ${sesion.nombre} 👋`;
 
-  let panelDinamico = document.createElement("section");
+  // contenedor donde vamos inyectando vistas
+  const panelDinamico = document.createElement("section");
   panelDinamico.id = "panel-dinamico";
   document.querySelector(".main-content").appendChild(panelDinamico);
 
+  // botones del panel
   document.getElementById("button1").addEventListener("click", mostrarQRUsuario);
   document.getElementById("button2").addEventListener("click", mostrarEstadoEntrega);
   document.getElementById("button3").addEventListener("click", mostrarPerfilUsuario);
@@ -39,11 +42,9 @@ async function mostrarQRUsuario() {
   }
 
   const qrToken = usuario.qrToken || usuario.correo;
-
-  // Convertir fecha a hora Chile
   const qrVigencia = formatearFechaChile(usuario.qrVigencia) || "Sin fecha";
 
-  // Cálculo dinámico de usos restantes
+  // usos dinámicos según estado de entrega
   const estado = (usuario.estadoEntrega || "").toLowerCase();
   const usosRestantes = estado === "entregado" ? "0 / 1" : "1 / 1";
 
@@ -60,7 +61,8 @@ async function mostrarQRUsuario() {
         <p><strong>Usos restantes:</strong> ${usosRestantes}</p>
       </div>
       <div style="min-width:200px; text-align:center;">
-        <img src="${qrUrl}" alt="QR del usuario" style="width:200px; height:200px; border:2px solid #ccc; border-radius:8px; background:#fff;">
+        <img src="${qrUrl}" alt="QR del usuario"
+             style="width:200px; height:200px; border:2px solid #ccc; border-radius:8px; background:#fff;">
         <p style="font-size:0.9rem; color:#64748b;">Código QR válido por 60 días</p>
       </div>
     </div>
@@ -137,7 +139,7 @@ function mostrarConfiguracion() {
 
 // ======================= FUNCIONES AUXILIARES =======================
 
-// Ajusta cualquier fecha a hora Chile (America/Santiago)
+// Ajusta cualquier fecha a America/Santiago
 function formatearFechaChile(fechaStr) {
   if (!fechaStr) return null;
   try {
@@ -155,7 +157,9 @@ function formatearFechaChile(fechaStr) {
 
 async function obtenerUsuarioPorCorreo(correo) {
   try {
-    const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
+    const res = await fetch(
+      `${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`
+    );
     const data = await res.json();
     if (!data.ok) return null;
     return data.data;

@@ -1,18 +1,21 @@
 // scripts_index.js
-const API_URL = "https://script.google.com/macros/s/AKfycbzRy5XT7RMgo89ZTPZm0LQw3WhvHMkE2AKr9knVu-wVvmltSm8Yv3Ivmka0vqnFEYDmiQ/exec";
+
+// ======================= CONFIGURACIÓN =======================
+const API_URL = "https://script.google.com/macros/s/AKfycbwr_1dpus1K7LYEe3yXg6wWnRIyvyNG-OlmkzsDgukfyFbEe6zH98Wzuizqnn6J-GObwQ/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   const card = document.querySelector("#card3d");
   const btnShowRegister = document.querySelector("#btn-show-register");
   const btnBackLogin = document.querySelector("#btn-back-login");
 
-  // ir a registro
+  // ir a registro (flip)
   if (btnShowRegister) {
     btnShowRegister.addEventListener("click", () => {
       card.classList.add("is-flipped");
     });
   }
-  // volver a login
+
+  // volver a login (flip back)
   if (btnBackLogin) {
     btnBackLogin.addEventListener("click", () => {
       card.classList.remove("is-flipped");
@@ -27,28 +30,30 @@ document.addEventListener("DOMContentLoaded", () => {
       const username = document.querySelector("#username")?.value.trim() || "";
       const password = document.querySelector("#password")?.value.trim() || "";
 
+      // 1. intentamos como usuario
       const usuario = await loginUsuario(username, password);
       if (usuario) {
         localStorage.setItem("sesionActual", JSON.stringify({
-          rol: "usuario",
-          nombre: `${usuario.nombre} ${usuario.apellido}`.trim(),
+          tipo: "usuario",
+          nombre: `${usuario.nombre || ""} ${usuario.apellido || ""}`.trim(),
           correo: usuario.correo,
           tipoContrato: usuario.tipoContrato,
           tipoBeneficio: usuario.tipoBeneficio,
-          estadoEntrega: usuario.estadoEntrega || ''
+          estadoEntrega: usuario.estadoEntrega || ""
         }));
-        window.location.href = "index_Usuario.html";
+        window.location.href = "index_usuario.html";
         return;
       }
 
+      // 2. intentamos como guardia
       const guardia = await loginGuardia(username, password);
       if (guardia) {
         localStorage.setItem("sesionActual", JSON.stringify({
-          rol: "guardia",
-          nombre: `${guardia.nombre} ${guardia.apellido}`.trim(),
+          tipo: "guardia",
+          nombre: `${guardia.nombre || ""} ${guardia.apellido || ""}`.trim(),
           correo: guardia.correo
         }));
-        window.location.href = "index_Guardia.html";
+        window.location.href = "index_guardia.html";
         return;
       }
 
@@ -74,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch(API_URL, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "createUser",
             correo,
@@ -86,16 +92,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.ok) {
           alert("Usuario creado. Ahora inicia sesión.");
 
-          // rellenar login SOLO si existen esos inputs
+          // rellenar login si existen
           const loginEmail = document.querySelector("#username");
           const loginPass = document.querySelector("#password");
           if (loginEmail) loginEmail.value = correo;
           if (loginPass) loginPass.value = password;
 
-          // volver a la cara de login
-          card.classList.remove("is-flipped");
+          // volver al login (des-flip)
+          if (card) card.classList.remove("is-flipped");
         } else {
-          alert("No se pudo crear el usuario.");
+          alert(data.message || "No se pudo crear el usuario.");
         }
       } catch (err) {
         console.error(err);
@@ -105,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* ==== helpers de login ==== */
+/* ==================== helpers de login ==================== */
 
 async function loginUsuario(correo, password) {
   try {
@@ -117,10 +123,14 @@ async function loginUsuario(correo, password) {
     const passInput = password.trim();
 
     const encontrado = data.data.find(u => {
-      const correoSheet = (u.correo || '').trim().toLowerCase();
-      const passSheet = (u.password || '').trim();
-      const vigenteSheet = (u.vigente || '').trim().toLowerCase();
-      const vigenteOK = (vigenteSheet === '' || vigenteSheet === 'si' || vigenteSheet === 'sí' || vigenteSheet === 'true');
+      const correoSheet = (u.correo || "").trim().toLowerCase();
+      const passSheet = (u.password || "").trim();
+      const vigenteSheet = (u.vigente || "").trim().toLowerCase();
+      const vigenteOK =
+        vigenteSheet === "" ||
+        vigenteSheet === "si" ||
+        vigenteSheet === "sí" ||
+        vigenteSheet === "true";
       return correoSheet === correoInput && passSheet === passInput && vigenteOK;
     });
 
@@ -141,10 +151,14 @@ async function loginGuardia(correo, password) {
     const passInput = password.trim();
 
     const encontrado = data.data.find(g => {
-      const correoSheet = (g.correo || '').trim().toLowerCase();
-      const passSheet = (g.password || '').trim();
-      const vigenteSheet = (g.vigente || '').trim().toLowerCase();
-      const vigenteOK = (vigenteSheet === '' || vigenteSheet === 'si' || vigenteSheet === 'sí' || vigenteSheet === 'true');
+      const correoSheet = (g.correo || "").trim().toLowerCase();
+      const passSheet = (g.password || "").trim();
+      const vigenteSheet = (g.vigente || "").trim().toLowerCase();
+      const vigenteOK =
+        vigenteSheet === "" ||
+        vigenteSheet === "si" ||
+        vigenteSheet === "sí" ||
+        vigenteSheet === "true";
       return correoSheet === correoInput && passSheet === passInput && vigenteOK;
     });
 
