@@ -1,7 +1,7 @@
 // scripts_index.js
 
 // ======================= CONFIGURACIÓN =======================
-const API_URL = "https://script.google.com/macros/s/AKfycbyO1xchlkXXKnLRCyZ27ztNUYfvTP28Na4A5L7-q5p9UcYBLr_7_Kp-Ls3gsyCjAvz_Kg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwNBxKJrKuyRhG2GLa29MxNYe3GESDJm4-SRMYRUDbnJl-jXcI5O8TSxJG-6Fmw-muY4A/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   const card = document.querySelector("#card3d");

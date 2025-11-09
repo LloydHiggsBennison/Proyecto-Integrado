@@ -1,6 +1,6 @@
 // scripts_Usuario.js
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyO1xchlkXXKnLRCyZ27ztNUYfvTP28Na4A5L7-q5p9UcYBLr_7_Kp-Ls3gsyCjAvz_Kg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwNBxKJrKuyRhG2GLa29MxNYe3GESDJm4-SRMYRUDbnJl-jXcI5O8TSxJG-6Fmw-muY4A/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "{}");
