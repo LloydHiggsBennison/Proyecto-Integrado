@@ -1,6 +1,5 @@
 // scripts_Guardias.js
 
-// ======================= CONFIGURACIÓN =======================
 const API_URL = "https://script.google.com/macros/s/AKfycbyO1xchlkXXKnLRCyZ27ztNUYfvTP28Na4A5L7-q5p9UcYBLr_7_Kp-Ls3gsyCjAvz_Kg/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,15 +11,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // saludo
   const h1 = document.querySelector("#saludo-guardia");
   if (h1) {
     h1.textContent = `Hola!, ${sesion.nombre || sesion.correo || "Guardia"} 👋`;
   }
 
-  // panel de mensajes
   const panel = document.querySelector("#panel-guardia");
-
   const inputQR = document.querySelector("#codigoQR");
   const btnEnviar = document.querySelector("#btnEnviarQR");
 
@@ -62,7 +58,7 @@ async function registrarEntrega(payload) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // <- sin preflight
       body: JSON.stringify({
         action: "logEntrega",
         ...payload

@@ -1,7 +1,7 @@
-// ======================= CONFIGURACIÓN =======================
+// scripts_Usuario.js
+
 const API_URL = "https://script.google.com/macros/s/AKfycbyO1xchlkXXKnLRCyZ27ztNUYfvTP28Na4A5L7-q5p9UcYBLr_7_Kp-Ls3gsyCjAvz_Kg/exec";
 
-// ======================= INICIO =======================
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "{}");
 
@@ -11,13 +11,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // saludo en el header
   const h1 = document.querySelector("#saludo-usuario");
   if (h1) {
     h1.textContent = `Hola, ${sesion.nombre || ""} ${sesion.apellido || ""}`;
   }
 
-  // cargar datos actualizados desde backend (Mongo vía Apps Script)
   cargarDatosUsuario(sesion.correo);
 });
 

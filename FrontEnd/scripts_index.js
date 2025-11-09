@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1. intentamos como usuario (Mongo vía Apps Script)
+      // 1) intentar como usuario
       const usuario = await loginUsuario(username, password);
       if (usuario) {
         localStorage.setItem(
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 2. intentamos como guardia (Mongo vía Apps Script)
+      // 2) intentar como guardia
       const guardia = await loginGuardia(username, password);
       if (guardia) {
         localStorage.setItem(
@@ -82,21 +82,18 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // aquí el Apps Script valida en la hoja "Nomina Trabajadores"
-      const ok = await registrarUsuarioEnBackend({
+      const resp = await registrarUsuarioEnBackend({
         nombre,
         apellido,
         correo,
         password
       });
 
-      if (ok?.ok) {
-        alert("Usuario creado en Mongo. QR: " + (ok.qrToken || "generado"));
-        // opcional: volver al login
-        const card = document.querySelector("#card3d");
+      if (resp?.ok) {
+        alert("Usuario creado en Mongo. QR: " + (resp.qrToken || "generado"));
         if (card) card.classList.remove("is-flipped");
       } else {
-        alert(ok?.message || "No se pudo crear el usuario (¿está en la nómina?).");
+        alert(resp?.message || "No se pudo crear el usuario (¿está en la nómina?).");
       }
     });
   }
@@ -113,18 +110,19 @@ async function loginUsuario(correoInput, passInput) {
     if (!data.ok || !data.data) return null;
 
     const u = data.data;
-
-    // validar password y vigencia
     const vigenteOK =
       !u.vigente ||
       u.vigente === "SI" ||
       u.vigente === "si" ||
       u.vigente === "true";
 
-    if (u.correo?.toLowerCase() === correoInput.toLowerCase() && u.password === passInput && vigenteOK) {
+    if (
+      u.correo?.toLowerCase() === correoInput.toLowerCase() &&
+      u.password === passInput &&
+      vigenteOK
+    ) {
       return u;
     }
-
     return null;
   } catch (err) {
     console.error("Error login usuario:", err);
@@ -138,17 +136,12 @@ async function loginGuardia(correoInput, passInput) {
     const data = await res.json();
     if (!data.ok || !Array.isArray(data.data)) return null;
 
-    // aquí data.data viene desde Mongo (proxy)
     const encontrado = data.data.find((g) => {
-      const correoSheet = (g.correo || "").toLowerCase().trim();
-      const passSheet = (g.password || "").trim();
-      const vigenteSheet = (g.vigente || "").toString().toLowerCase();
-      const vigenteOK =
-        vigenteSheet === "" ||
-        vigenteSheet === "si" ||
-        vigenteSheet === "sí" ||
-        vigenteSheet === "true";
-      return correoSheet === correoInput.toLowerCase() && passSheet === passInput && vigenteOK;
+      const correo = (g.correo || "").toLowerCase().trim();
+      const pass = (g.password || "").trim();
+      const v = (g.vigente || "").toString().toLowerCase();
+      const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
+      return correo === correoInput.toLowerCase() && pass === passInput && vigenteOK;
     });
 
     return encontrado || null;
@@ -158,18 +151,21 @@ async function loginGuardia(correoInput, passInput) {
   }
 }
 
-// crear usuario → Apps Script valida en Nómina y manda a Mongo
+// createUser -> Apps Script -> valida en "Nomina Trabajadores" -> Mongo
 async function registrarUsuarioEnBackend(payload) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // text/plain para evitar preflight de CORS
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "createUser",
         ...payload
       })
     });
-    return await res.json();
+    // como es text/plain igual podemos leerlo
+    const data = await res.json();
+    return data;
   } catch (err) {
     console.error("Error registrando usuario:", err);
     return { ok: false, message: "Error de red" };
