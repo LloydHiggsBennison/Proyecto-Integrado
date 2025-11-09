@@ -1,6 +1,7 @@
 {
-  "name": "mongo-api",
+  "name": "proyecto-integrado-backend",
   "version": "1.0.0",
+  "description": "API para Proyecto Integrado",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -10,5 +11,8 @@
     "express": "^4.19.0",
     "mongodb": "^6.3.0",
     "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
