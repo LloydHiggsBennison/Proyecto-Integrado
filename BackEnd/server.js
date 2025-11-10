@@ -1,17 +1,23 @@
 import express from "express";
 import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
+import bcrypt from "bcryptjs";
 
 const app = express();
 
-// CORS abierto para que el front en localhost pueda pegarle
+// CORS abierto para pruebas en local
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// ========= CONFIG MONGO =========
+// ====== ENV ======
 const uri = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME || "3Montes_Sites";
 
+if (!uri) {
+  console.error("Falta MONGO_URI en variables de entorno");
+}
+
+// ====== MONGO ======
 const client = new MongoClient(uri);
 
 async function getDB() {
@@ -21,12 +27,14 @@ async function getDB() {
   return client.db(DB_NAME);
 }
 
-// ========= ROOT =========
+// ====== ROOT ======
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "✅ API Mongo viva 👋" });
 });
 
-// ========= CONFIG (lo que ya tenías) =========
+/* ------------------------------------------------------------------
+   CONFIG  (lo que ya tenías)
+------------------------------------------------------------------ */
 app.get("/config", async (req, res) => {
   try {
     const db = await getDB();
@@ -59,8 +67,11 @@ app.patch("/config/:id", async (req, res) => {
   }
 });
 
-// ========= NOMINA (para validar registro) =========
-app.get("/nomina/by-email", async (req, res) => {
+/* ------------------------------------------------------------------
+   NOMINA  (para validar que el correo existe)
+   Front está llamando a:  GET /nomina/by-email?email=...
+------------------------------------------------------------------ */
+async function handleNominaByEmail(req, res) {
   try {
     const db = await getDB();
     const email = (req.query.email || "").toLowerCase();
@@ -69,17 +80,20 @@ app.get("/nomina/by-email", async (req, res) => {
     if (!trabajador) {
       return res.status(404).json({ ok: false, message: "No encontrado en nómina" });
     }
-
     res.json({ ok: true, trabajador });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.get("/nomina/by-email", handleNominaByEmail);
+app.get("/api/nomina/by-email", handleNominaByEmail); // alias extra
 
-// ========= USUARIOS =========
-
-// login del front: GET /usuarios/by-email?email=...
-app.get("/usuarios/by-email", async (req, res) => {
+/* ------------------------------------------------------------------
+   USUARIOS
+   Front está llamando a:  GET /usuarios/by-email?email=...
+                           POST /usuarios
+------------------------------------------------------------------ */
+async function handleGetUsuarioByEmail(req, res) {
   try {
     const db = await getDB();
     const email = (req.query.email || "").toLowerCase();
@@ -89,14 +103,17 @@ app.get("/usuarios/by-email", async (req, res) => {
       return res.status(404).json({ ok: false, message: "Usuario no encontrado" });
     }
 
+    // devolvemos tal cual, el front ya lo espera así
     res.json({ ok: true, usuario });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.get("/usuarios/by-email", handleGetUsuarioByEmail);
+app.get("/api/usuarios/by-email", handleGetUsuarioByEmail); // alias extra
 
-// registro/activación del front: POST /usuarios
-app.post("/usuarios", async (req, res) => {
+// crear / actualizar usuario
+async function handlePostUsuario(req, res) {
   try {
     const db = await getDB();
     const body = req.body || {};
@@ -106,6 +123,7 @@ app.post("/usuarios", async (req, res) => {
       return res.status(400).json({ ok: false, message: "Correo requerido" });
     }
 
+    // armamos el objeto que se va a guardar
     const update = {
       nombre: body.nombre || "",
       apellido: body.apellido || "",
@@ -115,12 +133,18 @@ app.post("/usuarios", async (req, res) => {
       tipoContrato: body.tipoContrato || "",
       vigente: body.vigente || "",
       sucursal: body.sucursal || "",
-      password: body.password || "",
       qrToken: body.qrToken || "",
       qrImagenURL: body.qrImagenURL || "",
       origen: body.origen || "web",
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
+
+    // si vino password, la hasheamos
+    if (body.password) {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(body.password, salt);
+      update.password = hash;
+    }
 
     await db.collection("usuarios").updateOne(
       { correo },
@@ -132,10 +156,15 @@ app.post("/usuarios", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.post("/usuarios", handlePostUsuario);
+app.post("/api/usuarios", handlePostUsuario); // alias extra
 
-// ========= GUARDIAS (para login de guardia) =========
-app.get("/guardias", async (req, res) => {
+/* ------------------------------------------------------------------
+   GUARDIAS
+   Front está llamando a:  GET /guardias
+------------------------------------------------------------------ */
+async function handleGetGuardias(req, res) {
   try {
     const db = await getDB();
     const guardias = await db.collection("guardias").find({}).toArray();
@@ -143,24 +172,33 @@ app.get("/guardias", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.get("/guardias", handleGetGuardias);
+app.get("/api/guardias", handleGetGuardias); // alias extra
 
-// ========= ENTREGAS =========
-app.post("/entregas", async (req, res) => {
+/* ------------------------------------------------------------------
+   ENTREGAS
+   Front está llamando a:  POST /entregas
+------------------------------------------------------------------ */
+async function handlePostEntrega(req, res) {
   try {
     const db = await getDB();
     const body = req.body || {};
     await db.collection("entregas").insertOne({
       ...body,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+app.post("/entregas", handlePostEntrega);
+app.post("/api/entregas", handlePostEntrega); // alias extra
 
-// ========= START =========
+/* ------------------------------------------------------------------
+   START
+------------------------------------------------------------------ */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ API Mongo escuchando en puerto " + PORT);
