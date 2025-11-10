@@ -1,7 +1,6 @@
 // scripts_index.js
 
-// ======================= CONFIGURACIÓN =======================
-const API_URL = "https://script.google.com/macros/s/AKfycbwNBxKJrKuyRhG2GLa29MxNYe3GESDJm4-SRMYRUDbnJl-jXcI5O8TSxJG-6Fmw-muY4A/exec";
+const API_BASE = "https://proyecto-integrado-production.up.railway.app";
 
 document.addEventListener("DOMContentLoaded", () => {
   const card = document.querySelector("#card3d");
@@ -9,15 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnBackLogin = document.querySelector("#btn-back-login");
 
   if (btnShowRegister && card) {
-    btnShowRegister.addEventListener("click", () => {
-      card.classList.add("is-flipped");
-    });
+    btnShowRegister.addEventListener("click", () => card.classList.add("is-flipped"));
   }
-
   if (btnBackLogin && card) {
-    btnBackLogin.addEventListener("click", () => {
-      card.classList.remove("is-flipped");
-    });
+    btnBackLogin.addEventListener("click", () => card.classList.remove("is-flipped"));
   }
 
   // ===== LOGIN =====
@@ -25,31 +19,31 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const username = document.querySelector("#username")?.value.trim() || "";
-      const password = document.querySelector("#password")?.value.trim() || "";
+      const correo = document.querySelector("#username").value.trim().toLowerCase();
+      const password = document.querySelector("#password").value.trim();
 
-      if (!username || !password) {
-        alert("Debes ingresar correo y contraseña.");
+      if (!correo || !password) {
+        alert("Completa correo y contraseña.");
         return;
       }
 
-      // 1) probar como usuario
-      const usuario = await loginUsuario(username, password);
+      // 1) intentar como usuario
+      const usuario = await loginComoUsuario(correo, password);
       if (usuario) {
-        localStorage.setItem("sesionActual", JSON.stringify({ tipo: "usuario", ...usuario }));
-        window.location.href = "usuario.html";
+        localStorage.setItem("sesionActual", JSON.stringify({ rol: "usuario", ...usuario }));
+        window.location.href = "index_Usuario.html";
         return;
       }
 
-      // 2) probar como guardia
-      const guardia = await loginGuardia(username, password);
+      // 2) intentar como guardia
+      const guardia = await loginComoGuardia(correo, password);
       if (guardia) {
-        localStorage.setItem("sesionActual", JSON.stringify({ tipo: "guardia", ...guardia }));
-        window.location.href = "guardia.html";
+        localStorage.setItem("sesionActual", JSON.stringify({ rol: "guardia", ...guardia }));
+        window.location.href = "index_Guardia.html";
         return;
       }
 
-      alert("Credenciales no válidas o usuario no vigente.");
+      alert("Credenciales inválidas.");
     });
   }
 
@@ -58,109 +52,121 @@ document.addEventListener("DOMContentLoaded", () => {
   if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nombre = document.querySelector("#reg-nombre")?.value.trim() || "";
-      const apellido = document.querySelector("#reg-apellido")?.value.trim() || "";
-      const correo = document.querySelector("#reg-correo")?.value.trim().toLowerCase() || "";
-      const password = document.querySelector("#reg-password")?.value.trim() || "";
+      const correo = document.querySelector("#reg-correo").value.trim().toLowerCase();
+      const password = document.querySelector("#reg-password").value.trim();
 
       if (!correo || !password) {
         alert("Correo y contraseña son obligatorios.");
         return;
       }
 
-      const resp = await registrarUsuarioEnBackend({ nombre, apellido, correo, password });
-
-      // si vuelve error de despliegue
-      if (resp._htmlError) {
-        console.error("Apps Script devolvió HTML. Publica el Web App como 'Cualquiera con el enlace'.");
-        alert("El backend no está publicado como Web App público. Revisa Apps Script.");
+      // 1) validar en la colección nomina
+      const nomina = await buscarEnNomina(correo);
+      if (!nomina) {
+        alert("Este correo no está en la nómina de trabajadores.");
         return;
       }
 
-      if (resp?.ok) {
-        // solo mostramos el QR si realmente lo mandó el backend
-        const qrMostrable = resp.qrToken ? ` QR: ${resp.qrToken}` : "";
-        alert("Usuario creado en Mongo." + qrMostrable);
+      // 2) crear/actualizar usuario en la colección usuarios
+      const resp = await crearUsuarioDesdeNomina(nomina, password);
+      if (resp.ok) {
+        alert("Usuario creado/activado. Ahora puedes iniciar sesión.");
         if (card) card.classList.remove("is-flipped");
       } else {
-        alert(resp?.message || "No se pudo crear el usuario (¿está en la nómina?).");
+        alert(resp.message || "No se pudo crear el usuario.");
       }
     });
   }
 });
 
-// ======================= FUNCIONES =======================
+/* ================= FUNCIONES ================= */
 
-// login de usuario
-async function loginUsuario(correoInput, passInput) {
+// login contra colección usuarios
+async function loginComoUsuario(correo, password) {
   try {
-    const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correoInput)}`);
-    const data = await safeJson(res);
-    if (!data || !data.ok || !data.data) return null;
+    const res = await fetch(`${API_BASE}/usuarios/by-email?email=${encodeURIComponent(correo)}`);
+    const data = await res.json();
+    if (!data || !data.ok || !data.usuario) return null;
 
-    const u = data.data;
-    const vigenteOK = !u.vigente || u.vigente === "SI" || u.vigente === "si" || u.vigente === "true";
-
-    if (u.correo?.toLowerCase() === correoInput.toLowerCase() && u.password === passInput && vigenteOK) {
+    const u = data.usuario;
+    if (u.password && u.password === password) {
       return u;
     }
     return null;
   } catch (err) {
-    console.error("Error login usuario:", err);
+    console.error("login usuario error:", err);
     return null;
   }
 }
 
-// login de guardia
-async function loginGuardia(correoInput, passInput) {
+// login contra colección guardias
+async function loginComoGuardia(correo, password) {
   try {
-    const res = await fetch(`${API_URL}?action=getGuards`);
-    const data = await safeJson(res);
-    if (!data || !data.ok || !Array.isArray(data.data)) return null;
+    const res = await fetch(`${API_BASE}/guardias`);
+    const data = await res.json();
+    if (!data || !data.ok || !Array.isArray(data.guardias)) return null;
 
-    const encontrado = data.data.find((g) => {
-      const correo = (g.correo || "").toLowerCase().trim();
-      const pass = (g.password || "").trim();
-      const v = (g.vigente || "").toString().toLowerCase();
-      const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
-      return correo === correoInput.toLowerCase() && pass === passInput && vigenteOK;
-    });
-
-    return encontrado || null;
+    const g = data.guardias.find(
+      (item) =>
+        item.correo &&
+        item.correo.toLowerCase() === correo.toLowerCase() &&
+        item.password === password
+    );
+    return g || null;
   } catch (err) {
-    console.error("Error login guardia:", err);
+    console.error("login guardia error:", err);
     return null;
   }
 }
 
-// crear usuario pero evitando preflight y detectando HTML
-async function registrarUsuarioEnBackend(payload) {
+// GET /nomina/by-email
+async function buscarEnNomina(correo) {
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "createUser", ...payload })
-    });
+    const res = await fetch(`${API_BASE}/nomina/by-email?email=${encodeURIComponent(correo)}`);
+    const data = await res.json();
+    if (data && data.ok && data.trabajador) {
+      return data.trabajador;
+    }
+    return null;
+  } catch (err) {
+    console.error("error buscando en nomina:", err);
+    return null;
+  }
+}
 
-    const data = await safeJson(res);
+// POST /usuarios usando los datos de la nómina
+async function crearUsuarioDesdeNomina(trabajadorNomina, password) {
+  // generamos un QR token aquí mismo en el frontend para que el usuario lo vea luego
+  const qrToken = generarTokenQR();
+  try {
+    const res = await fetch(`${API_BASE}/usuarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: trabajadorNomina.nombre,
+        apellido: trabajadorNomina.apellido,
+        correo: trabajadorNomina.correo,
+        tipoContrato: trabajadorNomina.tipoContrato,
+        vigente: trabajadorNomina.vigente,
+        password: password,
+        qrToken: qrToken,
+        origen: "web"
+      })
+    });
+    const data = await res.json();
     return data;
   } catch (err) {
-    console.error("Error registrando usuario:", err);
+    console.error("error creando usuario:", err);
     return { ok: false, message: "Error de red" };
   }
 }
 
-// helper: intenta parsear JSON, si no, marca que vino HTML
-async function safeJson(res) {
-  const text = await res.text();
-  if (text.trim().startsWith("<")) {
-    // esto es HTML -> no está publicado el Web App
-    return { _htmlError: true, raw: text };
+// generador simple de QR token
+function generarTokenQR() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let out = "QR-";
+  for (let i = 0; i < 7; i++) {
+    out += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error("No es JSON válido:", text);
-    return null;
-  }
+  return out;
 }

@@ -1,91 +1,75 @@
 // scripts_Guardias.js
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwNBxKJrKuyRhG2GLa29MxNYe3GESDJm4-SRMYRUDbnJl-jXcI5O8TSxJG-6Fmw-muY4A/exec";
+const API_BASE = "https://proyecto-integrado-production.up.railway.app";
 
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "null");
 
-  if (!sesion || sesion.tipo !== "guardia") {
-    alert("No tienes permisos o no has iniciado sesión como guardia.");
+  if (!sesion || sesion.rol !== "guardia") {
+    alert("Debes iniciar sesión como guardia.");
     window.location.href = "index.html";
     return;
   }
 
-  const h1 = document.querySelector("#saludo-guardia");
-  if (h1) {
-    h1.textContent = `Hola!, ${sesion.nombre || sesion.correo || "Guardia"} 👋`;
-  }
+  const h1 = document.querySelector("header h1");
+  if (h1) h1.textContent = `Hola!, ${sesion.nombre || "Guardia"} 👋`;
 
-  const panel = document.querySelector("#panel-guardia");
-  const inputQR = document.querySelector("#codigoQR");
-  const btnEnviar = document.querySelector("#btnEnviarQR");
-
-  if (btnEnviar && inputQR) {
-    btnEnviar.addEventListener("click", async () => {
-      const qr = inputQR.value.trim();
-      if (!qr) {
-        mostrarMensaje(panel, "Debes ingresar un código QR.", "error");
-        return;
-      }
-
-      const resp = await registrarEntrega({
-        qrToken: qr,
-        nombreGuardia: sesion.nombre || "",
-        apellidoGuardia: sesion.apellido || "",
-        correoGuardia: sesion.correo || ""
-      });
-
-      if (resp._htmlError) {
-        mostrarMensaje(panel, "El backend devolvió HTML (publica el Web App).", "error");
-        return;
-      }
-
-      if (resp.ok) {
-        mostrarMensaje(panel, "Entrega registrada en Mongo.", "success");
-      } else {
-        mostrarMensaje(panel, resp.message || "No se pudo registrar (¿QR ya usado?).", "error");
-      }
-
-      inputQR.value = "";
-    });
+  const btn = document.querySelector("#button1");
+  if (btn) {
+    btn.addEventListener("click", () => mostrarFormularioEntrega(sesion));
   }
 });
 
-function mostrarMensaje(panel, texto, tipo = "info") {
-  if (!panel) return;
-  let color = "#333";
-  if (tipo === "success") color = "#0a7b32";
-  if (tipo === "error") color = "#b00020";
-  panel.innerHTML = `<span style="color:${color}">${texto}</span>`;
-}
+function mostrarFormularioEntrega(sesion) {
+  let panel = document.querySelector("#panel-guardia");
+  if (!panel) {
+    panel = document.createElement("section");
+    panel.id = "panel-guardia";
+    panel.style.margin = "1rem";
+    document.body.appendChild(panel);
+  }
 
-async function registrarEntrega(payload) {
-  try {
-    const res = await fetch(API_URL, {
+  panel.innerHTML = `
+    <h3>Registrar entrega</h3>
+    <label>Código QR del trabajador</label>
+    <input id="qr-trabajador" type="text" placeholder="QR-XXXX..." style="width:100%;max-width:320px;margin-bottom:8px;" />
+    <label>Tipo de beneficio</label>
+    <input id="tipo-beneficio" type="text" placeholder="Caja Grande / Caja Pequeña" style="width:100%;max-width:320px;margin-bottom:8px;" />
+    <button id="btn-registrar">Registrar</button>
+    <p id="msg" style="margin-top:8px;"></p>
+  `;
+
+  const btnReg = panel.querySelector("#btn-registrar");
+  const msg = panel.querySelector("#msg");
+
+  btnReg.addEventListener("click", async () => {
+    const qr = panel.querySelector("#qr-trabajador").value.trim();
+    const tipoBeneficio = panel.querySelector("#tipo-beneficio").value.trim();
+
+    if (!qr) {
+      msg.textContent = "Debes ingresar un código QR.";
+      msg.style.color = "red";
+      return;
+    }
+
+    const resp = await fetch(`${API_BASE}/entregas`, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "logEntrega",
-        ...payload
+        qrTokenUsado: qr,
+        tipoBeneficio,
+        guardiaCorreo: sesion.correo,
+        guardiaNombre: sesion.nombre,
+        origen: "web"
       })
-    });
-    const data = await safeJson(res);
-    return data;
-  } catch (err) {
-    console.error("Error registrando entrega:", err);
-    return { ok: false, message: "Error de red" };
-  }
-}
+    }).then(r => r.json()).catch(() => ({ ok: false, message: "Error de red" }));
 
-async function safeJson(res) {
-  const text = await res.text();
-  if (text.trim().startsWith("<")) {
-    return { _htmlError: true, raw: text };
-  }
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error("No es JSON válido:", text);
-    return { ok: false, message: "Respuesta no JSON" };
-  }
+    if (resp.ok) {
+      msg.textContent = "Entrega registrada.";
+      msg.style.color = "green";
+    } else {
+      msg.textContent = resp.message || "No se pudo registrar. Verifica el QR.";
+      msg.style.color = "red";
+    }
+  });
 }
