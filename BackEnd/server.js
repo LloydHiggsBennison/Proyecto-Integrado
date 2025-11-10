@@ -3,15 +3,17 @@ import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 
 const app = express();
+
+// CORS abierto para que el front en localhost pueda pegarle
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// === Variables de entorno ===
+// ========= CONFIG MONGO =========
 const uri = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME || "3Montes_Sites";
 
-// === Conexión a Mongo ===
 const client = new MongoClient(uri);
+
 async function getDB() {
   if (!client.topology?.isConnected()) {
     await client.connect();
@@ -19,13 +21,12 @@ async function getDB() {
   return client.db(DB_NAME);
 }
 
-// === Ruta raíz ===
+// ========= ROOT =========
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "✅ API Mongo viva 👋" });
 });
 
-
-// === CONFIG ===
+// ========= CONFIG (lo que ya tenías) =========
 app.get("/config", async (req, res) => {
   try {
     const db = await getDB();
@@ -58,8 +59,7 @@ app.patch("/config/:id", async (req, res) => {
   }
 });
 
-
-// === NOMINA ===
+// ========= NOMINA (para validar registro) =========
 app.get("/nomina/by-email", async (req, res) => {
   try {
     const db = await getDB();
@@ -76,8 +76,9 @@ app.get("/nomina/by-email", async (req, res) => {
   }
 });
 
+// ========= USUARIOS =========
 
-// === USUARIOS ===
+// login del front: GET /usuarios/by-email?email=...
 app.get("/usuarios/by-email", async (req, res) => {
   try {
     const db = await getDB();
@@ -94,10 +95,11 @@ app.get("/usuarios/by-email", async (req, res) => {
   }
 });
 
+// registro/activación del front: POST /usuarios
 app.post("/usuarios", async (req, res) => {
   try {
     const db = await getDB();
-    const body = req.body;
+    const body = req.body || {};
     const correo = (body.correo || "").toLowerCase();
 
     if (!correo) {
@@ -113,9 +115,11 @@ app.post("/usuarios", async (req, res) => {
       tipoContrato: body.tipoContrato || "",
       vigente: body.vigente || "",
       sucursal: body.sucursal || "",
+      password: body.password || "",
       qrToken: body.qrToken || "",
       qrImagenURL: body.qrImagenURL || "",
-      updatedAt: new Date(),
+      origen: body.origen || "web",
+      updatedAt: new Date()
     };
 
     await db.collection("usuarios").updateOne(
@@ -130,8 +134,7 @@ app.post("/usuarios", async (req, res) => {
   }
 });
 
-
-// === GUARDIAS ===
+// ========= GUARDIAS (para login de guardia) =========
 app.get("/guardias", async (req, res) => {
   try {
     const db = await getDB();
@@ -142,15 +145,14 @@ app.get("/guardias", async (req, res) => {
   }
 });
 
-
-// === ENTREGAS ===
+// ========= ENTREGAS =========
 app.post("/entregas", async (req, res) => {
   try {
     const db = await getDB();
     const body = req.body || {};
     await db.collection("entregas").insertOne({
       ...body,
-      createdAt: new Date(),
+      createdAt: new Date()
     });
     res.json({ ok: true });
   } catch (err) {
@@ -158,9 +160,8 @@ app.post("/entregas", async (req, res) => {
   }
 });
 
-
-// === Escucha ===
+// ========= START =========
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log("✅ API Mongo escuchando en puerto " + PORT)
-);
+app.listen(PORT, () => {
+  console.log("✅ API Mongo escuchando en puerto " + PORT);
+});
