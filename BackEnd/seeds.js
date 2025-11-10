@@ -47,26 +47,27 @@ async function main() {
   await nomina.deleteMany({});
 
   const docs = dataLines.map((line) => {
-    const cols = line.split(",");
+  const cols = line.split(",").map((c) => limpiarCelda(c));
 
-    // ajusta índices según el orden real de tu sheet
-    const doc = {
-      nombre: cols[0] || "",
-      apellido: cols[1] || "",
-      rut: cols[2] || "",
-      correo: (cols[3] || "").toLowerCase(),
-      direccion: cols[4] || "",
-      telefono: cols[5] || "",
-      vigente: cols[6] || "",
-      tipoContrato: cols[7] || "",
-      sucursal: cols[8] || "",
-      qrToken: cols[9] || "",
-      qrImagenURL: cols[10] || "",
-      // aquí NO meto qrToken porque tú quieres generarlo en el frontend y mostrarlo en el perfil
-      createdAt: new Date()
-    };
-    return doc;
-  });
+  return {
+    nombre: cols[0] || "",
+    apellido: cols[1] || "",
+    rut: cols[2] || "",
+    correo: (cols[3] || "").toLowerCase(),
+    direccion: cols[4] || "",
+    telefono: cols[5] || "",
+    vigente: cols[6] || "",
+    tipoContrato: cols[7] || "",
+    createdAt: new Date()
+  };
+});
+
+// helper para quitar comillas y espacios
+function limpiarCelda(celda = "") {
+  const t = celda.trim();
+  // quita comillas al inicio y al final si las hay
+  return t.replace(/^"+|"+$/g, "");
+}
 
   console.log(`Insertando ${docs.length} trabajadores en Mongo...`);
   if (docs.length > 0) {
