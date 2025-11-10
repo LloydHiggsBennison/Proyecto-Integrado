@@ -1,97 +1,157 @@
 // scripts_index.js
-
-const API_BASE = "https://proyecto-integrado-production.up.railway.app";
+// Backend ahora es Railway (Mongo), no Apps Script
+const API_URL = "https://proyecto-integrado-production.up.railway.app";
 
 document.addEventListener("DOMContentLoaded", () => {
   const card = document.querySelector("#card3d");
   const btnShowRegister = document.querySelector("#btn-show-register");
   const btnBackLogin = document.querySelector("#btn-back-login");
 
+  // ir a registro
   if (btnShowRegister && card) {
-    btnShowRegister.addEventListener("click", () => card.classList.add("is-flipped"));
-  }
-  if (btnBackLogin && card) {
-    btnBackLogin.addEventListener("click", () => card.classList.remove("is-flipped"));
+    btnShowRegister.addEventListener("click", () => {
+      card.classList.add("is-flipped");
+    });
   }
 
-  // ===== LOGIN =====
+  // volver a login
+  if (btnBackLogin && card) {
+    btnBackLogin.addEventListener("click", () => {
+      card.classList.remove("is-flipped");
+    });
+  }
+
+  /* ===== LOGIN ===== */
   const loginForm = document.querySelector("#login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const correo = document.querySelector("#username").value.trim().toLowerCase();
-      const password = document.querySelector("#password").value.trim();
+      const username = document.querySelector("#username")?.value.trim().toLowerCase() || "";
+      const password = document.querySelector("#password")?.value.trim() || "";
 
-      if (!correo || !password) {
-        alert("Completa correo y contraseña.");
+      if (!username || !password) {
+        alert("Ingresa correo y contraseña.");
         return;
       }
 
-      // 1) intentar como usuario
-      const usuario = await loginComoUsuario(correo, password);
+      // 1) intentar como USUARIO
+      const usuario = await loginUsuarioRailway(username, password);
       if (usuario) {
-        localStorage.setItem("sesionActual", JSON.stringify({ rol: "usuario", ...usuario }));
+        localStorage.setItem(
+          "sesionActual",
+          JSON.stringify({
+            rol: "usuario",
+            nombre: `${usuario.nombre || ""} ${usuario.apellido || ""}`.trim(),
+            correo: usuario.correo,
+            tipoContrato: usuario.tipoContrato,
+            tipoBeneficio: usuario.tipoBeneficio,
+            estadoEntrega: usuario.estadoEntrega || "",
+            qrToken: usuario.qrToken || ""
+          })
+        );
         window.location.href = "index_Usuario.html";
         return;
       }
 
-      // 2) intentar como guardia
-      const guardia = await loginComoGuardia(correo, password);
+      // 2) intentar como GUARDIA
+      const guardia = await loginGuardiaRailway(username, password);
       if (guardia) {
-        localStorage.setItem("sesionActual", JSON.stringify({ rol: "guardia", ...guardia }));
+        localStorage.setItem(
+          "sesionActual",
+          JSON.stringify({
+            rol: "guardia",
+            nombre: `${guardia.nombre || ""} ${guardia.apellido || ""}`.trim(),
+            correo: guardia.correo
+          })
+        );
         window.location.href = "index_Guardia.html";
         return;
       }
 
-      alert("Credenciales inválidas.");
+      alert("Usuario o contraseña no válidos, o no estás registrado.");
     });
   }
 
-  // ===== REGISTRO =====
+  /* ===== REGISTRO ===== */
   const registerForm = document.querySelector("#register-form");
   if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const correo = document.querySelector("#reg-correo").value.trim().toLowerCase();
-      const password = document.querySelector("#reg-password").value.trim();
+      const correo = document.querySelector("#reg-correo")?.value.trim().toLowerCase() || "";
+      const password = document.querySelector("#reg-password")?.value.trim() || "";
+      const nombre = document.querySelector("#reg-nombre")?.value.trim() || "";
+      const apellido = document.querySelector("#reg-apellido")?.value.trim() || "";
 
       if (!correo || !password) {
-        alert("Correo y contraseña son obligatorios.");
+        alert("Ingresa al menos correo y contraseña.");
         return;
       }
 
-      // 1) validar en la colección nomina
-      const nomina = await buscarEnNomina(correo);
-      if (!nomina) {
-        alert("Este correo no está en la nómina de trabajadores.");
+      // 1) validar que esté en la NOMINA (en mongo.nomina)
+      const trabajadorNomina = await buscarEnNominaRailway(correo);
+      if (!trabajadorNomina) {
+        alert("Este correo NO está en la nómina de trabajadores.");
         return;
       }
 
-      // 2) crear/actualizar usuario en la colección usuarios
-      const resp = await crearUsuarioDesdeNomina(nomina, password);
-      if (resp.ok) {
-        alert("Usuario creado/activado. Ahora puedes iniciar sesión.");
+      // 2) generar un QR para este usuario (como antes generabas en GAS)
+      const qrToken = generarTokenQR();
+
+      // 3) guardar/activar usuario en colección usuarios
+      const creado = await crearUsuarioRailway({
+        nombre: trabajadorNomina.nombre || nombre,
+        apellido: trabajadorNomina.apellido || apellido,
+        correo,
+        password,
+        tipoContrato: trabajadorNomina.tipoContrato || "",
+        vigente: trabajadorNomina.vigente || "",
+        qrToken
+      });
+
+      if (creado && creado.ok) {
+        alert("Usuario creado. Ahora inicia sesión.");
+
+        // rellenar login SOLO si existen esos inputs
+        const loginEmail = document.querySelector("#username");
+        const loginPass = document.querySelector("#password");
+        if (loginEmail) loginEmail.value = correo;
+        if (loginPass) loginPass.value = password;
+
         if (card) card.classList.remove("is-flipped");
       } else {
-        alert(resp.message || "No se pudo crear el usuario.");
+        alert(creado?.message || "No se pudo crear el usuario.");
       }
     });
   }
 });
 
-/* ================= FUNCIONES ================= */
+/* =========================================================
+   FUNCIONES DE LOGIN Y REGISTRO CONTRA RAILWAY
+   ========================================================= */
 
-// login contra colección usuarios
-async function loginComoUsuario(correo, password) {
+// LOGIN USUARIO
+async function loginUsuarioRailway(correo, passwordPlain) {
   try {
-    const res = await fetch(`${API_BASE}/usuarios/by-email?email=${encodeURIComponent(correo)}`);
-    const data = await res.json();
-    if (!data || !data.ok || !data.usuario) return null;
-
-    const u = data.usuario;
-    if (u.password && u.password === password) {
-      return u;
+    // 1) pedir al backend el usuario por correo
+    const res = await fetch(`${API_URL}/usuarios/by-email?email=${encodeURIComponent(correo)}`);
+    if (!res.ok) {
+      // 404 u otro -> no existe
+      return null;
     }
+    const data = await res.json();
+    if (!data.ok || !data.usuario) return null;
+
+    const usuario = data.usuario;
+
+    // 2) en el backend guardamos password con SHA-256
+    // así que en el front lo hasheamos igual y comparamos
+    const hashInput = await sha256(passwordPlain);
+    const hashMongo = (usuario.password || "").trim();
+
+    if (hashInput === hashMongo) {
+      return usuario;
+    }
+
     return null;
   } catch (err) {
     console.error("login usuario error:", err);
@@ -99,30 +159,35 @@ async function loginComoUsuario(correo, password) {
   }
 }
 
-// login contra colección guardias
-async function loginComoGuardia(correo, password) {
+// LOGIN GUARDIA (en mongo.guardias la contraseña la dejamos en texto plano)
+async function loginGuardiaRailway(correo, passwordPlain) {
   try {
-    const res = await fetch(`${API_BASE}/guardias`);
+    const res = await fetch(`${API_URL}/guardias`);
+    if (!res.ok) return null;
     const data = await res.json();
-    if (!data || !data.ok || !Array.isArray(data.guardias)) return null;
+    if (!data.ok || !Array.isArray(data.guardias)) return null;
 
-    const g = data.guardias.find(
-      (item) =>
-        item.correo &&
-        item.correo.toLowerCase() === correo.toLowerCase() &&
-        item.password === password
-    );
-    return g || null;
+    const correoInput = correo.trim().toLowerCase();
+    const passInput = passwordPlain.trim();
+
+    const encontrado = data.guardias.find((g) => {
+      const correoDb = (g.correo || "").trim().toLowerCase();
+      const passDb = (g.password || "").trim();
+      return correoDb === correoInput && passDb === passInput;
+    });
+
+    return encontrado || null;
   } catch (err) {
     console.error("login guardia error:", err);
     return null;
   }
 }
 
-// GET /nomina/by-email
-async function buscarEnNomina(correo) {
+// REGISTRO: validar que exista en nomina
+async function buscarEnNominaRailway(correo) {
   try {
-    const res = await fetch(`${API_BASE}/nomina/by-email?email=${encodeURIComponent(correo)}`);
+    const res = await fetch(`${API_URL}/nomina/by-email?email=${encodeURIComponent(correo)}`);
+    if (!res.ok) return null;
     const data = await res.json();
     if (data && data.ok && data.trabajador) {
       return data.trabajador;
@@ -134,34 +199,35 @@ async function buscarEnNomina(correo) {
   }
 }
 
-// POST /usuarios usando los datos de la nómina
-async function crearUsuarioDesdeNomina(trabajadorNomina, password) {
-  // generamos un QR token aquí mismo en el frontend para que el usuario lo vea luego
-  const qrToken = generarTokenQR();
+// REGISTRO: crear/actualizar usuario en colección usuarios
+async function crearUsuarioRailway(payload) {
   try {
-    const res = await fetch(`${API_BASE}/usuarios`, {
+    const res = await fetch(`${API_URL}/usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nombre: trabajadorNomina.nombre,
-        apellido: trabajadorNomina.apellido,
-        correo: trabajadorNomina.correo,
-        tipoContrato: trabajadorNomina.tipoContrato,
-        vigente: trabajadorNomina.vigente,
-        password: password,
-        qrToken: qrToken,
+        nombre: payload.nombre,
+        apellido: payload.apellido,
+        correo: payload.correo,
+        password: payload.password, // el server la va a hashear
+        tipoContrato: payload.tipoContrato,
+        vigente: payload.vigente,
+        qrToken: payload.qrToken,
         origen: "web"
       })
     });
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (err) {
     console.error("error creando usuario:", err);
-    return { ok: false, message: "Error de red" };
+    return { ok: false, message: "error de red" };
   }
 }
 
-// generador simple de QR token
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+// mismo generador que usábamos en GAS
 function generarTokenQR() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let out = "QR-";
@@ -169,4 +235,14 @@ function generarTokenQR() {
     out += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return out;
+}
+
+// hash SHA-256 en el navegador (para comparar con lo que guardó el server)
+async function sha256(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex;
 }

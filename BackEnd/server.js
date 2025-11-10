@@ -1,33 +1,39 @@
 import express from "express";
 import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const app = express();
 
-// CORS abierto para pruebas en local
-app.use(cors({ origin: "*" }));
+// CORS abierto para tu front en localhost
+app.use(cors({ origin: "*", methods: "GET,POST,PATCH,OPTIONS", allowedHeaders: "Content-Type" }));
 app.use(express.json());
 
-// ====== ENV ======
-const uri = process.env.MONGO_URI;
+// ===== ENV =====
+const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME || "3Montes_Sites";
 
-if (!uri) {
-  console.error("Falta MONGO_URI en variables de entorno");
+if (!MONGO_URI) {
+  console.error("❌ Falta MONGO_URI en las variables de entorno");
 }
 
-// ====== MONGO ======
-const client = new MongoClient(uri);
+// ===== MONGO =====
+const client = new MongoClient(MONGO_URI);
 
+// misma idea que tenías tú
 async function getDB() {
-  if (!client.topology?.isConnected()) {
+  if (!client.topology || !client.topology.isConnected()) {
     await client.connect();
   }
   return client.db(DB_NAME);
 }
 
-// ====== ROOT ======
+// helper para hash sin dependencias extra
+function hashPassword(plain = "") {
+  return crypto.createHash("sha256").update(plain).digest("hex");
+}
+
+// ===== RUTA RAÍZ =====
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "✅ API Mongo viva 👋" });
 });
@@ -68,15 +74,13 @@ app.patch("/config/:id", async (req, res) => {
 });
 
 /* ------------------------------------------------------------------
-   NOMINA  (para validar que el correo existe)
-   Front está llamando a:  GET /nomina/by-email?email=...
+   NOMINA  (el front llama: GET /nomina/by-email?email=...)
 ------------------------------------------------------------------ */
-async function handleNominaByEmail(req, res) {
+app.get("/nomina/by-email", async (req, res) => {
   try {
     const db = await getDB();
     const email = (req.query.email || "").toLowerCase();
     const trabajador = await db.collection("nomina").findOne({ correo: email });
-
     if (!trabajador) {
       return res.status(404).json({ ok: false, message: "No encontrado en nómina" });
     }
@@ -84,47 +88,40 @@ async function handleNominaByEmail(req, res) {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-app.get("/nomina/by-email", handleNominaByEmail);
-app.get("/api/nomina/by-email", handleNominaByEmail); // alias extra
+});
 
 /* ------------------------------------------------------------------
    USUARIOS
-   Front está llamando a:  GET /usuarios/by-email?email=...
-                           POST /usuarios
+   - el front hace: GET /usuarios/by-email?email=...
+   - el front hace: POST /usuarios  (registro)
 ------------------------------------------------------------------ */
-async function handleGetUsuarioByEmail(req, res) {
+
+// login / consulta
+app.get("/usuarios/by-email", async (req, res) => {
   try {
     const db = await getDB();
     const email = (req.query.email || "").toLowerCase();
     const usuario = await db.collection("usuarios").findOne({ correo: email });
-
     if (!usuario) {
       return res.status(404).json({ ok: false, message: "Usuario no encontrado" });
     }
-
-    // devolvemos tal cual, el front ya lo espera así
     res.json({ ok: true, usuario });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-app.get("/usuarios/by-email", handleGetUsuarioByEmail);
-app.get("/api/usuarios/by-email", handleGetUsuarioByEmail); // alias extra
+});
 
-// crear / actualizar usuario
-async function handlePostUsuario(req, res) {
+// crear / actualizar
+app.post("/usuarios", async (req, res) => {
   try {
     const db = await getDB();
     const body = req.body || {};
     const correo = (body.correo || "").toLowerCase();
-
     if (!correo) {
       return res.status(400).json({ ok: false, message: "Correo requerido" });
     }
 
-    // armamos el objeto que se va a guardar
-    const update = {
+    const doc = {
       nombre: body.nombre || "",
       apellido: body.apellido || "",
       correo,
@@ -139,32 +136,27 @@ async function handlePostUsuario(req, res) {
       updatedAt: new Date(),
     };
 
-    // si vino password, la hasheamos
+    // si viene password claro, la guardamos hasheada
     if (body.password) {
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(body.password, salt);
-      update.password = hash;
+      doc.password = hashPassword(body.password);
     }
 
     await db.collection("usuarios").updateOne(
       { correo },
-      { $set: update, $setOnInsert: { createdAt: new Date() } },
+      { $set: doc, $setOnInsert: { createdAt: new Date() } },
       { upsert: true }
     );
 
-    res.json({ ok: true, usuario: update });
+    res.json({ ok: true, usuario: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-app.post("/usuarios", handlePostUsuario);
-app.post("/api/usuarios", handlePostUsuario); // alias extra
+});
 
 /* ------------------------------------------------------------------
-   GUARDIAS
-   Front está llamando a:  GET /guardias
+   GUARDIAS  (el front hace: GET /guardias)
 ------------------------------------------------------------------ */
-async function handleGetGuardias(req, res) {
+app.get("/guardias", async (req, res) => {
   try {
     const db = await getDB();
     const guardias = await db.collection("guardias").find({}).toArray();
@@ -172,15 +164,12 @@ async function handleGetGuardias(req, res) {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-app.get("/guardias", handleGetGuardias);
-app.get("/api/guardias", handleGetGuardias); // alias extra
+});
 
 /* ------------------------------------------------------------------
-   ENTREGAS
-   Front está llamando a:  POST /entregas
+   ENTREGAS  (el front hace: POST /entregas)
 ------------------------------------------------------------------ */
-async function handlePostEntrega(req, res) {
+app.post("/entregas", async (req, res) => {
   try {
     const db = await getDB();
     const body = req.body || {};
@@ -192,9 +181,7 @@ async function handlePostEntrega(req, res) {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-app.post("/entregas", handlePostEntrega);
-app.post("/api/entregas", handlePostEntrega); // alias extra
+});
 
 /* ------------------------------------------------------------------
    START
