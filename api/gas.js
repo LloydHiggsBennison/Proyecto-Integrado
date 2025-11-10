@@ -2,7 +2,7 @@
 
 export default async function handler(req, res) {
   // 🔁 pon aquí tu URL de Apps Script publicada
-  const GAS_URL = "https://script.google.com/macros/s/TU_ID/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyICO-Hs3QBtd9oM70PveOvmDL6luV3pnbuA8Mul9z8BUMiPt9cN1q5Ah_5KH9gJQcpeQ/exec";
 
   // pasar querystrings (?action=...)
   const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
