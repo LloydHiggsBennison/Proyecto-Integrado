@@ -1,5 +1,6 @@
 // scripts_Guardias.js
 const API_URL = "/api/gas";
+// https://script.google.com/macros/s/AKfycbyICO-Hs3QBtd9oM70PveOvmDL6luV3pnbuA8Mul9z8BUMiPt9cN1q5Ah_5KH9gJQcpeQ/exec
 
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "null");
