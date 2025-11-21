@@ -4,11 +4,20 @@ const API_URL = "/api/gas";
 
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "null");
-  if (!sesion || sesion.rol !== "guardia") {
+
+  // Validar sesión y rol obligatorio
+  if (!sesion || sesion.rol !== "guardia" || !sesion.correo) {
     alert("Debes iniciar sesión como guardia.");
     window.location.href = "index.html";
     return;
   }
+
+  // Saludo dinámico
+  const saludoEl = document.getElementById("saludo");
+  if (saludoEl) {
+    saludoEl.textContent = `¡Hola, ${sesion.nombre} 👋`;
+  }
+
 
   const main = document.querySelector(".main-content");
   if (!main) return;

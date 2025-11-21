@@ -3,7 +3,18 @@ const API_URL = "/api/gas";
 
 document.addEventListener("DOMContentLoaded", async () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "null");
-  if (!sesion || !sesion.correo) return;
+
+  // Si no hay sesión válida, redirige al login
+  if (!sesion || !sesion.correo) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  // Actualizar saludo dinámico
+  const saludoEl = document.getElementById("saludo");
+  if (saludoEl) {
+    saludoEl.textContent = `¡Hola, ${sesion.nombre} 👋`;
+  }
 
   // 1. traemos usuario
   const usuario = await obtenerUsuarioDesdeAPI(sesion.correo);
