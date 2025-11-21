@@ -2,7 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 /****************************************************
- * CONFIG SUPABASE
+ * CONFIG SUPABASE 
  ****************************************************/
 const QR_DIAS_VIGENCIA = 60;
 
