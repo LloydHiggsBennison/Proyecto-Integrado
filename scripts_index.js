@@ -95,13 +95,26 @@ document.addEventListener("DOMContentLoaded", () => {
         // 3️⃣ si pasó la validación, lo creamos en Usuario
         const res = await fetch(API_URL, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             action: "createUser",
             correo,
             password
           })
         });
-        const data = await res.json();
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text || "{}");
+        } catch (e) {
+          console.error("Error parseando respuesta de /api/gas:", text);
+          alert("Error del servidor al crear usuario.");
+          return;
+        }
+
         if (data.ok) {
           alert("Usuario creado. Ahora puedes iniciar sesión.");
           if (card) card.classList.remove("is-flipped");

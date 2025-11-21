@@ -1,3 +1,4 @@
+// scripts_Usuario.js
 const API_URL = "/api/gas";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -75,7 +76,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // si quieres que al cargar muestre precisamente "Mi perfil", descomenta:
+  // Si quieres que al cargar muestre "Mi perfil" directamente:
   // renderMiPerfil(panelContenido, usuario, entregasUsuario);
 });
 

@@ -53,7 +53,7 @@ async function escanearFlujo(panelContenido, sesion) {
     return;
   }
 
-  // 3️⃣ Validar coincidencia entre QR escaneado y el que tiene asignado en la hoja
+  // 3️⃣ Validar coincidencia entre QR escaneado y el que tiene asignado
   const qrCajaHoja = (trabajador.qrCaja || "").toString().trim().toLowerCase();
   const qrCajaLeida = tokenCaja.toString().trim().toLowerCase();
   const coincideQR = qrCajaHoja && qrCajaHoja === qrCajaLeida;
@@ -87,20 +87,28 @@ async function escanearFlujo(panelContenido, sesion) {
 
   // 6️⃣ Si pasa ambas validaciones → registrar entrega
   panelContenido.innerHTML += `<p style="color:green;">✅ Caja correcta, registrando entrega...</p>`;
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "logEntrega",
-      nombreUsuario: `${trabajador.nombre} ${trabajador.apellido}`.trim(),
-      correoUsuario: trabajador.correo,
-      fechaEntrega: new Date().toISOString(),
-      sucursal: sesion.sucursal || "",
-      nombreGuardia: sesion.nombre || "Guardia",
-      qrToken: trabajador.qrToken || "",
-      qrCaja: tokenCaja
-    })
-  });
-  panelContenido.innerHTML += `<p style="color:green;">Entrega registrada ✅</p>`;
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "logEntrega",
+        nombreUsuario: `${trabajador.nombre} ${trabajador.apellido}`.trim(),
+        correoUsuario: trabajador.correo,
+        fechaEntrega: new Date().toISOString(),
+        sucursal: sesion.sucursal || "",
+        nombreGuardia: sesion.nombre || "Guardia",
+        qrToken: trabajador.qrToken || "",
+        qrCaja: tokenCaja
+      })
+    });
+    panelContenido.innerHTML += `<p style="color:green;">Entrega registrada ✅</p>`;
+  } catch (err) {
+    console.error("Error registrando entrega:", err);
+    panelContenido.innerHTML += `<p style="color:#b91c1c;">Error al registrar la entrega.</p>`;
+  }
 }
 
 /* ================== BUSCAR SOLO POR TOKEN ================== */
