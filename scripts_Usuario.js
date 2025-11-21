@@ -18,6 +18,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 1. traemos usuario
   const usuario = await obtenerUsuarioDesdeAPI(sesion.correo);
+
+  // Si no se pudo obtener el usuario, mostrar error y volver al login
+  if (!usuario) {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo cargar tu información. Inicia sesión nuevamente."
+    }).then(() => {
+      window.location.href = "index.html";
+    });
+    return;
+  }
+
   // 2. traemos entregas del usuario
   const entregasUsuario = await obtenerEntregasUsuario(sesion.correo);
 
@@ -87,7 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Si quieres que al cargar muestre "Mi perfil" directamente:
+  // Si quieres que al cargar muestre "Mi perfil" directamente, puedes descomentar:
   // renderMiPerfil(panelContenido, usuario, entregasUsuario);
 });
 

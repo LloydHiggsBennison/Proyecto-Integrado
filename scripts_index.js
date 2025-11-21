@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnShowRegister && card) {
     btnShowRegister.addEventListener("click", () => card.classList.add("is-flipped"));
   }
+
   // volver a login
   if (btnBackLogin && card) {
     btnBackLogin.addEventListener("click", () => card.classList.remove("is-flipped"));
@@ -25,11 +26,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = (document.querySelector("#password")?.value || "").trim();
 
       if (!correo || !password) {
-        alert("Completa usuario y contraseña");
+        Swal.fire({
+          icon: "warning",
+          title: "Campos incompletos",
+          text: "Completa usuario y contraseña.",
+        });
         return;
       }
 
-      // 1) probar login como guardia (prioridad absoluta si el correo está en guardias)
+      // 1) login como guardia
       const guardia = await intentarLoginGuardia(correo, password);
       if (guardia) {
         localStorage.setItem("sesionActual", JSON.stringify({
@@ -39,11 +44,12 @@ document.addEventListener("DOMContentLoaded", () => {
           correo: (guardia.correo || correo),
           sucursal: guardia.sucursal || ""
         }));
+
         window.location.href = "index_Guardia.html";
         return;
       }
 
-      // 2) probar login como usuario
+      // 2) login como usuario normal
       const usuario = await intentarLoginUsuario(correo, password);
       if (usuario) {
         localStorage.setItem("sesionActual", JSON.stringify({
@@ -55,11 +61,16 @@ document.addEventListener("DOMContentLoaded", () => {
           tipoBeneficio: usuario.tipoBeneficio,
           vigente: usuario.vigente
         }));
+
         window.location.href = "index_Usuario.html";
         return;
       }
 
-      alert("Credenciales incorrectas o usuario no vigente.");
+      Swal.fire({
+        icon: "error",
+        title: "Credenciales incorrectas",
+        text: "Revisa tu correo y contraseña o verifica tu vigencia.",
+      });
     });
   }
 
@@ -71,33 +82,43 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = (document.querySelector("#reg-password")?.value || "").trim();
 
       if (!correo || !password) {
-        alert("Completa correo y contraseña.");
+        Swal.fire({
+          icon: "warning",
+          title: "Campos incompletos",
+          text: "Completa correo y contraseña.",
+        });
         return;
       }
 
       try {
-        // 1️⃣ ¿ya existe como usuario?
+        // 1️⃣ ¿ya existe en Usuarios?
         const yaEsUsuario = await existeEnUsuarios(correo);
         if (yaEsUsuario) {
-          alert("Este correo ya tiene un usuario creado. Inicia sesión.");
+          Swal.fire({
+            icon: "info",
+            title: "Ya tienes cuenta",
+            text: "Este correo ya está registrado. Inicia sesión.",
+          });
           return;
         }
 
-        // 2️⃣ validar que esté en al menos una de las dos: Nómina o Guardias
+        // 2️⃣ validar si está en Nómina o Guardia
         const estaEnNomina = await existeEnNomina(correo);
         const estaEnGuardias = await existeEnGuardias(correo);
 
         if (!estaEnNomina && !estaEnGuardias) {
-          alert("Tu correo no está en 'Nomina Trabajadores' ni en 'Guardia'. No puedes registrarte.");
+          Swal.fire({
+            icon: "error",
+            title: "Correo no autorizado",
+            text: "Tu correo no está en Nómina o Guardia. No puedes registrarte.",
+          });
           return;
         }
 
-        // 3️⃣ si pasó la validación, lo creamos en Usuario
+        // 3️⃣ crear usuario
         const res = await fetch(API_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "createUser",
             correo,
@@ -110,104 +131,94 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           data = JSON.parse(text || "{}");
         } catch (e) {
-          console.error("Error parseando respuesta de /api/gas:", text);
-          alert("Error del servidor al crear usuario.");
+          console.error("Error parseando respuesta GAS:", text);
+          Swal.fire({
+            icon: "error",
+            title: "Error del servidor",
+            text: "No se pudo procesar la respuesta del servidor.",
+          });
           return;
         }
 
+        // 4️⃣ feedback visual
         if (data.ok) {
-          alert("Usuario creado. Ahora puedes iniciar sesión.");
-          if (card) card.classList.remove("is-flipped");
+          Swal.fire({
+            icon: "success",
+            title: "¡Usuario creado!",
+            text: "Ahora puedes iniciar sesión.",
+            confirmButtonText: "Continuar",
+            confirmButtonColor: "#3085d6"
+          }).then(() => {
+            if (card) card.classList.remove("is-flipped");
+          });
+
         } else {
-          alert(data.message || "No se pudo crear el usuario.");
+          Swal.fire({
+            icon: "error",
+            title: "No se pudo crear la cuenta",
+            text: data.message || "Revisa los datos e inténtalo nuevamente.",
+          });
         }
+
       } catch (err) {
         console.error(err);
-        alert("Error creando usuario.");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Ocurrió un error creando el usuario.",
+        });
       }
     });
   }
 });
 
 /* ================== LOGIN HELPERS ================== */
-
-/**
- * Login de guardia (más estricto):
- * - Si el correo existe en la tabla/hoja Guardias → se considera guardia.
- * - La contraseña se valida contra la tabla de Usuarios (getUserByEmail).
- * - Si todo ok → se devuelve el guardia; si no → null.
- */
 async function intentarLoginGuardia(correo, password) {
   try {
-    // 1) obtener todos los guardias
     const resGuards = await fetch(`${API_URL}?action=getGuards`);
     const dataGuards = await resGuards.json();
     if (!dataGuards.ok) return null;
 
-    // ¿este correo está en la tabla de guardias?
     const guard = dataGuards.data.find(g =>
       (g.correo || "").trim().toLowerCase() === correo.toLowerCase()
     );
-    if (!guard) {
-      // no está en guardias → no es guardia
-      return null;
-    }
+    if (!guard) return null;
 
-    // validar que el guardia esté vigente
     const v = (guard.vigente || "").toString().trim().toLowerCase();
     const guardVigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
-    if (!guardVigenteOK) {
-      return null;
-    }
+    if (!guardVigenteOK) return null;
 
-    // 2) validar contraseña contra la tabla de usuarios (getUserByEmail)
     const resUser = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
     const dataUser = await resUser.json();
-
-    if (!dataUser.ok || !dataUser.data) {
-      // existe como guardia pero aún no tiene usuario creado
-      return null;
-    }
+    if (!dataUser.ok || !dataUser.data) return null;
 
     const u = dataUser.data;
     const p = (u.password || "").trim();
-    const vUser = (u.vigente || "").toString().trim().toLowerCase();
+    const vUser = (u.vigente || "").trim().toLowerCase();
     const userVigenteOK = vUser === "" || vUser === "si" || vUser === "sí" || vUser === "true";
 
-    if (p !== password || !userVigenteOK) {
-      return null;
-    }
+    if (p !== password || !userVigenteOK) return null;
 
-    // 3) devolvemos objeto combinado (guardia confirmado)
-    return {
-      ...guard,
-      correo: u.correo || guard.correo
-    };
+    return { ...guard, correo: u.correo || guard.correo };
   } catch (err) {
     console.error("Error login guardia:", err);
     return null;
   }
 }
 
-// Login de usuario normal (trabajador)
 async function intentarLoginUsuario(correo, password) {
   try {
     const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
     const data = await res.json();
-    console.log("getUserByEmail respuesta:", data);
-
     if (!data.ok || !data.data) return null;
 
     const u = data.data;
     const c = (u.correo || "").trim().toLowerCase();
     const p = (u.password || "").trim();
-    const v = (u.vigente || "").toString().trim().toLowerCase();
+    const v = (u.vigente || "").trim().toLowerCase();
 
     const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
-
-    if (c === correo.toLowerCase() && p === password && vigenteOK) {
-      return u;
-    }
+    if (c === correo.toLowerCase() && p === password && vigenteOK) return u;
 
     return null;
   } catch (err) {
@@ -217,13 +228,12 @@ async function intentarLoginUsuario(correo, password) {
 }
 
 /* ================== REGISTRO HELPERS ================== */
-
-// ¿correo está en tabla Usuario ya creado?
 async function existeEnUsuarios(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getUsers`);
     const data = await res.json();
     if (!data.ok) return false;
+
     return data.data.some(u => (u.correo || "").trim().toLowerCase() === correo.toLowerCase());
   } catch (e) {
     console.error(e);
@@ -231,12 +241,12 @@ async function existeEnUsuarios(correo) {
   }
 }
 
-// ¿correo está en Nómina (nomina_trabajadores)?
 async function existeEnNomina(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getNomina`);
     const data = await res.json();
     if (!data.ok) return false;
+
     return data.data.some(n => (n.correo || "").trim().toLowerCase() === correo.toLowerCase());
   } catch (e) {
     console.error(e);
@@ -244,12 +254,12 @@ async function existeEnNomina(correo) {
   }
 }
 
-// ¿correo está en Guardia?
 async function existeEnGuardias(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getGuards`);
     const data = await res.json();
     if (!data.ok) return false;
+
     return data.data.some(g => (g.correo || "").trim().toLowerCase() === correo.toLowerCase());
   } catch (e) {
     console.error(e);

@@ -1,23 +1,24 @@
 // scripts_Guardias.js
 const API_URL = "/api/gas";
-// https://script.google.com/macros/s/AKfycbweayiDE6OTxwQYQfKXJgnDeEUZ0900U1ObIsQDSt6EMUc3nlgHHIE228w17scgwhcDYw/exec
 
 document.addEventListener("DOMContentLoaded", () => {
   const sesion = JSON.parse(localStorage.getItem("sesionActual") || "null");
 
-  // Validar sesión y rol obligatorio
+  // Validar sesión con SweetAlert2
   if (!sesion || sesion.rol !== "guardia" || !sesion.correo) {
-    alert("Debes iniciar sesión como guardia.");
-    window.location.href = "index.html";
+    Swal.fire({
+      icon: "error",
+      title: "Acceso restringido",
+      text: "Debes iniciar sesión como guardia."
+    }).then(() => {
+      window.location.href = "index.html";
+    });
     return;
   }
 
   // Saludo dinámico
   const saludoEl = document.getElementById("saludo");
-  if (saludoEl) {
-    saludoEl.textContent = `¡Hola, ${sesion.nombre} 👋`;
-  }
-
+  if (saludoEl) saludoEl.textContent = `¡Hola, ${sesion.nombre} 👋`;
 
   const main = document.querySelector(".main-content");
   if (!main) return;
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     panelContenido.style.marginTop = "1.5rem";
     main.appendChild(panelContenido);
   }
+
   panelContenido.innerHTML = "<p>Selecciona una opción.</p>";
 
   document.getElementById("button1")?.addEventListener("click", () => escanearFlujo(panelContenido, sesion));
@@ -36,11 +38,23 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("button3")?.addEventListener("click", () => mostrarAdmin(panelContenido));
 });
 
+/* ============================================================
+   FLUJO PRINCIPAL DE ESCANEO
+=============================================================== */
 async function escanearFlujo(panelContenido, sesion) {
   panelContenido.innerHTML = `<h3>Entrega de cajas</h3><p>Escaneando trabajador (token)...</p>`;
 
-  // 1️⃣ Escanear QR del trabajador
-  const tokenTrabajador = prompt("Escanea o escribe el QR/TOKEN del trabajador:");
+  /* 1️⃣ TOKEN DEL TRABAJADOR */
+  const tokenTrabajador = await Swal.fire({
+    title: "Escanear QR del trabajador",
+    input: "text",
+    inputLabel: "Token QR del trabajador",
+    inputPlaceholder: "Ej: QR-ABC1234",
+    showCancelButton: true,
+    confirmButtonText: "Aceptar",
+    cancelButtonText: "Cancelar"
+  }).then(r => r.isConfirmed ? r.value : null);
+
   if (!tokenTrabajador) {
     panelContenido.innerHTML += "<p>Operación cancelada.</p>";
     return;
@@ -48,60 +62,89 @@ async function escanearFlujo(panelContenido, sesion) {
 
   const trabajador = await buscarTrabajadorPorToken(tokenTrabajador);
   if (!trabajador) {
+    Swal.fire({
+      icon: "error",
+      title: "No encontrado",
+      text: "No se encontró un trabajador con ese token."
+    });
     panelContenido.innerHTML = `
       <h3>Entrega de cajas</h3>
-      <p style="color:red;">Trabajador no encontrado por ese token.</p>
+      <p style="color:red;">Trabajador no encontrado.</p>
     `;
     return;
   }
 
-  // 2️⃣ Escanear QR de la caja
-  const tokenCaja = prompt("Escanea ahora el QR de la caja:");
+  /* 2️⃣ TOKEN DE LA CAJA */
+  const tokenCaja = await Swal.fire({
+    title: "Escanear QR de la caja",
+    input: "text",
+    inputLabel: "Token de la caja",
+    inputPlaceholder: "Ej: Caja Grande / Caja Pequeña",
+    showCancelButton: true,
+    confirmButtonText: "Aceptar",
+    cancelButtonText: "Cancelar"
+  }).then(r => r.isConfirmed ? r.value : null);
+
   if (!tokenCaja) {
     panelContenido.innerHTML += "<p>Operación cancelada.</p>";
     return;
   }
 
-  // 3️⃣ Validar coincidencia entre QR escaneado y el que tiene asignado
-  const qrCajaHoja = (trabajador.qrCaja || "").toString().trim().toLowerCase();
-  const qrCajaLeida = tokenCaja.toString().trim().toLowerCase();
+  /* ============================================================
+     VALIDACIONES
+  =============================================================== */
+
+  const qrCajaHoja = (trabajador.qrCaja || "").toLowerCase();
+  const qrCajaLeida = tokenCaja.toLowerCase();
   const coincideQR = qrCajaHoja && qrCajaHoja === qrCajaLeida;
 
-  // 4️⃣ Validar tipo de contrato y tipo de caja
   const contrato = (trabajador.tipoContrato || "").toLowerCase();
-  const tipoEsperado = contrato.includes("indefinido") ? "caja grande" :
-                       contrato.includes("plazo fijo") ? "caja pequeña" : "";
 
-  const coincideTipo = tipoEsperado && qrCajaLeida.includes(tipoEsperado.toLowerCase());
+  const tipoEsperado = contrato.includes("indefinido")
+    ? "caja grande"
+    : contrato.includes("plazo fijo")
+      ? "caja pequeña"
+      : "";
 
-  // 5️⃣ Mostrar resultados en pantalla
+  const coincideTipo = tipoEsperado && qrCajaLeida.includes(tipoEsperado);
+
+  /* Pintar datos */
   panelContenido.innerHTML = `
     <h3>Entrega de cajas</h3>
     <p>Trabajador: <strong>${trabajador.nombre} ${trabajador.apellido}</strong> (${trabajador.correo})</p>
     <p>Contrato: ${trabajador.tipoContrato || "-"}</p>
     <p>Beneficio asignado: ${trabajador.tipoBeneficio || "-"}</p>
-    <p>QR del trabajador: ${trabajador.qrToken || "-"}</p>
+    <p>QR trabajador: ${trabajador.qrToken}</p>
     <p>QR caja leído: ${tokenCaja}</p>
   `;
 
   if (!coincideQR) {
-    panelContenido.innerHTML += `<p style="color:#b91c1c;">❌ El QR escaneado no corresponde a la caja registrada.</p>`;
+    Swal.fire({
+      icon: "error",
+      title: "Caja incorrecta",
+      text: "El QR de la caja no coincide con el asignado al trabajador."
+    });
+    panelContenido.innerHTML += `<p style="color:red;">❌ La caja escaneada NO corresponde a la asignada.</p>`;
     return;
   }
 
   if (!coincideTipo) {
-    panelContenido.innerHTML += `<p style="color:#b91c1c;">❌ El tipo de contrato (${trabajador.tipoContrato}) no corresponde al tipo de caja (${tokenCaja}).</p>`;
+    Swal.fire({
+      icon: "error",
+      title: "Tipo incorrecto",
+      text: `El contrato (${trabajador.tipoContrato}) no coincide con la caja (${tokenCaja}).`
+    });
+    panelContenido.innerHTML += `<p style="color:red;">❌ Tipo de caja incorrecto.</p>`;
     return;
   }
 
-  // 6️⃣ Si pasa ambas validaciones → registrar entrega
-  panelContenido.innerHTML += `<p style="color:green;">✅ Caja correcta, registrando entrega...</p>`;
+  /* 6️⃣ Registrar entrega */
+  panelContenido.innerHTML += `<p style="color:green;">Validación correcta. Registrando entrega...</p>`;
+
   try {
     await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "logEntrega",
         nombreUsuario: `${trabajador.nombre} ${trabajador.apellido}`.trim(),
@@ -109,22 +152,38 @@ async function escanearFlujo(panelContenido, sesion) {
         fechaEntrega: new Date().toISOString(),
         sucursal: sesion.sucursal || "",
         nombreGuardia: sesion.nombre || "Guardia",
-        qrToken: trabajador.qrToken || "",
+        qrToken: trabajador.qrToken,
         qrCaja: tokenCaja
       })
     });
-    panelContenido.innerHTML += `<p style="color:green;">Entrega registrada ✅</p>`;
+
+    Swal.fire({
+      icon: "success",
+      title: "Entrega registrada",
+      text: "La entrega fue registrada correctamente."
+    });
+
+    panelContenido.innerHTML += `<p style="color:green;">Entrega registrada ✔️</p>`;
+
   } catch (err) {
     console.error("Error registrando entrega:", err);
-    panelContenido.innerHTML += `<p style="color:#b91c1c;">Error al registrar la entrega.</p>`;
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo registrar la entrega."
+    });
+    panelContenido.innerHTML += `<p style="color:red;">Error al registrar entrega.</p>`;
   }
 }
 
-/* ================== BUSCAR SOLO POR TOKEN ================== */
+/* ============================================================
+   CONSULTA A GOOGLE APPS SCRIPT → buscar usuario por token
+=============================================================== */
 async function buscarTrabajadorPorToken(token) {
   try {
     const res = await fetch(`${API_URL}?action=getUserByToken&token=${encodeURIComponent(token)}`);
     const data = await res.json();
+
     if (data.ok && data.data) {
       return {
         nombre: data.data.nombre || "",
@@ -132,33 +191,34 @@ async function buscarTrabajadorPorToken(token) {
         correo: data.data.correo || "",
         tipoContrato: data.data.tipoContrato || "",
         tipoBeneficio: data.data.tipoBeneficio || "",
-        qrToken: token,
+        qrToken: data.data.qrToken || token,
         qrCaja: data.data.qrCaja || ""
       };
     }
   } catch (e) {
-    console.error("Error buscando por token:", e);
+    console.error("Error buscando token:", e);
   }
   return null;
 }
 
-/* ================== VISTAS EXTRA ================== */
+/* ============================================================
+   OTRAS VISTAS
+=============================================================== */
 function mostrarInstrucciones(panelContenido) {
   panelContenido.innerHTML = `
     <h3>Instrucciones</h3>
     <ol>
-      <li>Escanea el QR del trabajador (QRToken).</li>
-      <li>Luego escanea el QR de la caja (QRCaja).</li>
-      <li>El sistema validará que ambos coincidan y que el tipo de contrato sea compatible:</li>
-      <ul>
-        <li><strong>Indefinido → Caja Grande</strong></li>
-        <li><strong>Plazo Fijo → Caja Pequeña</strong></li>
-      </ul>
-      <li>Si todo es correcto, se registra la entrega automáticamente.</li>
+      <li>Escanea o ingresa el QR del trabajador.</li>
+      <li>Luego escanea el QR de la caja asignada.</li>
+      <li>El sistema verificará automáticamente la coincidencia.</li>
+      <li>Si todo es correcto, se registrará la entrega.</li>
     </ol>
   `;
 }
 
 function mostrarAdmin(panelContenido) {
-  panelContenido.innerHTML = `<h3>Administrar</h3><p>Función en desarrollo.</p>`;
+  panelContenido.innerHTML = `
+    <h3>Administrar</h3>
+    <p>Función en desarrollo.</p>
+  `;
 }
