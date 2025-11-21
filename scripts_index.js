@@ -152,21 +152,27 @@ async function intentarLoginGuardia(correo, password) {
   }
 }
 
+// 🔐 Ahora login de usuario usa getUserByEmail
 async function intentarLoginUsuario(correo, password) {
   try {
-    const res = await fetch(`${API_URL}?action=getUsers`);
+    const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
     const data = await res.json();
-    if (!data.ok) return null;
+    console.log("getUserByEmail respuesta:", data);
 
-    const found = data.data.find(u => {
-      const c = (u.correo || "").trim().toLowerCase();
-      const p = (u.password || "").trim();
-      const v = (u.vigente || "").trim().toLowerCase();
-      const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
-      return c === correo.toLowerCase() && p === password && vigenteOK;
-    });
+    if (!data.ok || !data.data) return null;
 
-    return found || null;
+    const u = data.data;
+    const c = (u.correo || "").trim().toLowerCase();
+    const p = (u.password || "").trim();
+    const v = (u.vigente || "").toString().trim().toLowerCase();
+
+    const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
+
+    if (c === correo.toLowerCase() && p === password && vigenteOK) {
+      return u;
+    }
+
+    return null;
   } catch (err) {
     console.error("Error login usuario:", err);
     return null;
@@ -175,7 +181,7 @@ async function intentarLoginUsuario(correo, password) {
 
 /* ================== REGISTRO HELPERS ================== */
 
-// ¿correo está en pestaña Usuario ya creado?
+// ¿correo está en tabla Usuario ya creado?
 async function existeEnUsuarios(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getUsers`);
@@ -188,7 +194,7 @@ async function existeEnUsuarios(correo) {
   }
 }
 
-// ¿correo está en pestaña Nomina Trabajadores?
+// ¿correo está en Nómina (nomina_trabajadores)?
 async function existeEnNomina(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getNomina`);
@@ -201,7 +207,7 @@ async function existeEnNomina(correo) {
   }
 }
 
-// ¿correo está en pestaña Guardia?
+// ¿correo está en Guardia?
 async function existeEnGuardias(correo) {
   try {
     const res = await fetch(`${API_URL}?action=getGuards`);
