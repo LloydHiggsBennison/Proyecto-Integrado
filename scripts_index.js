@@ -29,14 +29,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1) probar login como guardia
+      // 1) probar login como guardia (prioridad absoluta si el correo está en guardias)
       const guardia = await intentarLoginGuardia(correo, password);
       if (guardia) {
         localStorage.setItem("sesionActual", JSON.stringify({
           rol: "guardia",
           nombre: guardia.nombre,
           apellido: guardia.apellido,
-          correo: guardia.correo,
+          correo: (guardia.correo || correo),
           sucursal: guardia.sucursal || ""
         }));
         window.location.href = "index_Guardia.html";
@@ -131,28 +131,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ================== LOGIN HELPERS ================== */
 
+/**
+ * Login de guardia (más estricto):
+ * - Si el correo existe en la tabla/hoja Guardias → se considera guardia.
+ * - La contraseña se valida contra la tabla de Usuarios (getUserByEmail).
+ * - Si todo ok → se devuelve el guardia; si no → null.
+ */
 async function intentarLoginGuardia(correo, password) {
   try {
-    const res = await fetch(`${API_URL}?action=getGuards`);
-    const data = await res.json();
-    if (!data.ok) return null;
+    // 1) obtener todos los guardias
+    const resGuards = await fetch(`${API_URL}?action=getGuards`);
+    const dataGuards = await resGuards.json();
+    if (!dataGuards.ok) return null;
 
-    const found = data.data.find(g => {
-      const c = (g.correo || "").trim().toLowerCase();
-      const p = (g.password || "").trim();
-      const v = (g.vigente || "").trim().toLowerCase();
-      const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
-      return c === correo.toLowerCase() && p === password && vigenteOK;
-    });
+    // ¿este correo está en la tabla de guardias?
+    const guard = dataGuards.data.find(g =>
+      (g.correo || "").trim().toLowerCase() === correo.toLowerCase()
+    );
+    if (!guard) {
+      // no está en guardias → no es guardia
+      return null;
+    }
 
-    return found || null;
+    // validar que el guardia esté vigente
+    const v = (guard.vigente || "").toString().trim().toLowerCase();
+    const guardVigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
+    if (!guardVigenteOK) {
+      return null;
+    }
+
+    // 2) validar contraseña contra la tabla de usuarios (getUserByEmail)
+    const resUser = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
+    const dataUser = await resUser.json();
+
+    if (!dataUser.ok || !dataUser.data) {
+      // existe como guardia pero aún no tiene usuario creado
+      return null;
+    }
+
+    const u = dataUser.data;
+    const p = (u.password || "").trim();
+    const vUser = (u.vigente || "").toString().trim().toLowerCase();
+    const userVigenteOK = vUser === "" || vUser === "si" || vUser === "sí" || vUser === "true";
+
+    if (p !== password || !userVigenteOK) {
+      return null;
+    }
+
+    // 3) devolvemos objeto combinado (guardia confirmado)
+    return {
+      ...guard,
+      correo: u.correo || guard.correo
+    };
   } catch (err) {
     console.error("Error login guardia:", err);
     return null;
   }
 }
 
-// 🔐 Ahora login de usuario usa getUserByEmail
+// Login de usuario normal (trabajador)
 async function intentarLoginUsuario(correo, password) {
   try {
     const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
