@@ -39,21 +39,107 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ============================================================
+   HELPER: Pedir token con cámara + fallback manual
+=============================================================== */
+function pedirTokenQR(titulo, label) {
+  return new Promise((resolve) => {
+    let scanner = null;
+
+    Swal.fire({
+      title: titulo,
+      html: `
+        <p>${label}</p>
+        <div style="margin-top:0.75rem;margin-bottom:0.75rem;">
+          <button id="btn-scan-qr" class="swal2-confirm swal2-styled" style="margin-right:8px;">
+            Escanear con cámara
+          </button>
+          <a id="link-manual-qr" href="#" style="font-size:0.9rem;">
+            Ingresar token manualmente
+          </a>
+        </div>
+        <div id="qr-reader" style="width:280px;max-width:100%;margin:0 auto;display:none;"></div>
+      `,
+      showConfirmButton: false,
+      didOpen: () => {
+        const btnScan = document.getElementById("btn-scan-qr");
+        const linkManual = document.getElementById("link-manual-qr");
+        const readerElem = document.getElementById("qr-reader");
+
+        // Escanear con cámara
+        btnScan.addEventListener("click", async () => {
+          readerElem.style.display = "block";
+
+          try {
+            scanner = new Html5Qrcode("qr-reader");
+            await scanner.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: 220 },
+              (decodedText) => {
+                // Cuando escanea algo
+                scanner.stop().then(() => {
+                  scanner.clear();
+                  Swal.close();
+                  resolve(decodedText);
+                }).catch(() => {
+                  Swal.close();
+                  resolve(decodedText);
+                });
+              },
+              () => {
+                // errores de escaneo ignorados
+              }
+            );
+          } catch (err) {
+            console.error("Error cámara:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Error con la cámara",
+              text: "No se pudo acceder a la cámara. Usa la opción de ingreso manual."
+            });
+          }
+        });
+
+        // Fallback manual
+        linkManual.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const { value, isConfirmed } = await Swal.fire({
+            title: titulo,
+            input: "text",
+            inputLabel: label,
+            inputPlaceholder: "Escribe el token aquí",
+            showCancelButton: true,
+            confirmButtonText: "Aceptar",
+            cancelButtonText: "Cancelar"
+          });
+
+          if (isConfirmed) {
+            Swal.close();
+            resolve(value || null);
+          } else {
+            resolve(null);
+          }
+        });
+      },
+      willClose: () => {
+        if (scanner) {
+          scanner.stop().then(() => scanner.clear()).catch(() => {});
+        }
+      }
+    });
+  });
+}
+
+/* ============================================================
    FLUJO PRINCIPAL DE ESCANEO
 =============================================================== */
 async function escanearFlujo(panelContenido, sesion) {
   panelContenido.innerHTML = `<h3>Entrega de cajas</h3><p>Escaneando trabajador (token)...</p>`;
 
-  /* 1️⃣ TOKEN DEL TRABAJADOR */
-  const tokenTrabajador = await Swal.fire({
-    title: "Escanear QR del trabajador",
-    input: "text",
-    inputLabel: "Token QR del trabajador",
-    inputPlaceholder: "Ej: QR-ABC1234",
-    showCancelButton: true,
-    confirmButtonText: "Aceptar",
-    cancelButtonText: "Cancelar"
-  }).then(r => r.isConfirmed ? r.value : null);
+  /* 1️⃣ TOKEN DEL TRABAJADOR (cámara + manual) */
+  const tokenTrabajador = await pedirTokenQR(
+    "QR del trabajador",
+    "Escanea el QR o ingresa el token del trabajador."
+  );
 
   if (!tokenTrabajador) {
     panelContenido.innerHTML += "<p>Operación cancelada.</p>";
@@ -74,16 +160,11 @@ async function escanearFlujo(panelContenido, sesion) {
     return;
   }
 
-  /* 2️⃣ TOKEN DE LA CAJA */
-  const tokenCaja = await Swal.fire({
-    title: "Escanear QR de la caja",
-    input: "text",
-    inputLabel: "Token de la caja",
-    inputPlaceholder: "Ej: Caja Grande / Caja Pequeña",
-    showCancelButton: true,
-    confirmButtonText: "Aceptar",
-    cancelButtonText: "Cancelar"
-  }).then(r => r.isConfirmed ? r.value : null);
+  /* 2️⃣ TOKEN DE LA CAJA (cámara + manual) */
+  const tokenCaja = await pedirTokenQR(
+    "QR de la caja",
+    "Escanea el QR de la caja o ingresa el identificador."
+  );
 
   if (!tokenCaja) {
     panelContenido.innerHTML += "<p>Operación cancelada.</p>";
@@ -93,13 +174,11 @@ async function escanearFlujo(panelContenido, sesion) {
   /* ============================================================
      VALIDACIONES
   =============================================================== */
-
   const qrCajaHoja = (trabajador.qrCaja || "").toLowerCase();
   const qrCajaLeida = tokenCaja.toLowerCase();
   const coincideQR = qrCajaHoja && qrCajaHoja === qrCajaLeida;
 
   const contrato = (trabajador.tipoContrato || "").toLowerCase();
-
   const tipoEsperado = contrato.includes("indefinido")
     ? "caja grande"
     : contrato.includes("plazo fijo")
@@ -108,7 +187,6 @@ async function escanearFlujo(panelContenido, sesion) {
 
   const coincideTipo = tipoEsperado && qrCajaLeida.includes(tipoEsperado);
 
-  /* Pintar datos */
   panelContenido.innerHTML = `
     <h3>Entrega de cajas</h3>
     <p>Trabajador: <strong>${trabajador.nombre} ${trabajador.apellido}</strong> (${trabajador.correo})</p>
@@ -131,14 +209,14 @@ async function escanearFlujo(panelContenido, sesion) {
   if (!coincideTipo) {
     Swal.fire({
       icon: "error",
-      title: "Tipo incorrecto",
-      text: `El contrato (${trabajador.tipoContrato}) no coincide con la caja (${tokenCaja}).`
+      title: "Tipo de caja incorrecto",
+      text: `El contrato (${trabajador.tipoContrato}) no coincide con el tipo de caja (${tokenCaja}).`
     });
     panelContenido.innerHTML += `<p style="color:red;">❌ Tipo de caja incorrecto.</p>`;
     return;
   }
 
-  /* 6️⃣ Registrar entrega */
+  /* 3️⃣ Registrar entrega */
   panelContenido.innerHTML += `<p style="color:green;">Validación correcta. Registrando entrega...</p>`;
 
   try {
@@ -164,7 +242,6 @@ async function escanearFlujo(panelContenido, sesion) {
     });
 
     panelContenido.innerHTML += `<p style="color:green;">Entrega registrada ✔️</p>`;
-
   } catch (err) {
     console.error("Error registrando entrega:", err);
     Swal.fire({
@@ -209,7 +286,7 @@ function mostrarInstrucciones(panelContenido) {
     <h3>Instrucciones</h3>
     <ol>
       <li>Escanea o ingresa el QR del trabajador.</li>
-      <li>Luego escanea el QR de la caja asignada.</li>
+      <li>Luego escanea o ingresa el QR de la caja asignada.</li>
       <li>El sistema verificará automáticamente la coincidencia.</li>
       <li>Si todo es correcto, se registrará la entrega.</li>
     </ol>
