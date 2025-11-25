@@ -34,24 +34,51 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1) login como guardia
+      // 1) login como guardia (usando tabla guardias + usuarios)
       const guardia = await intentarLoginGuardia(correo, password);
       if (guardia) {
         localStorage.setItem("sesionActual", JSON.stringify({
           rol: "guardia",
           nombre: guardia.nombre,
           apellido: guardia.apellido,
-          correo: (guardia.correo || correo),
+          correo: guardia.correo || correo,
           sucursal: guardia.sucursal || ""
         }));
-
         window.location.href = "index_Guardia.html";
         return;
       }
 
-      // 2) login como usuario normal
+      // 2) login general en tabla usuarios (trabajador / rrhh / guardia fallback)
       const usuario = await intentarLoginUsuario(correo, password);
       if (usuario) {
+        const rol = (usuario.rol || "").toString().trim().toLowerCase();
+
+        // si por alguna razón es guardia pero no entró por el flujo anterior
+        if (rol === "guardia") {
+          localStorage.setItem("sesionActual", JSON.stringify({
+            rol: "guardia",
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            correo: usuario.correo,
+            sucursal: usuario.sucursal || ""
+          }));
+          window.location.href = "index_Guardia.html";
+          return;
+        }
+
+        // RRHH → panel RRHH
+        if (rol === "rrhh") {
+          localStorage.setItem("sesionActual", JSON.stringify({
+            rol: "rrhh",
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            correo: usuario.correo
+          }));
+          window.location.href = "index_RRHH.html";
+          return;
+        }
+
+        // trabajador / usuario normal
         localStorage.setItem("sesionActual", JSON.stringify({
           rol: "usuario",
           nombre: usuario.nombre,
@@ -131,7 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           data = JSON.parse(text || "{}");
         } catch (e) {
-          console.error("Error parseando respuesta GAS:", text);
+          console.error("Error parseando respuesta backend:", text);
           Swal.fire({
             icon: "error",
             title: "Error del servidor",
@@ -175,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ================== LOGIN HELPERS ================== */
 async function intentarLoginGuardia(correo, password) {
   try {
+    // buscamos primero en tabla guardias (para vigencia, sucursal, etc.)
     const resGuards = await fetch(`${API_URL}?action=getGuards`);
     const dataGuards = await resGuards.json();
     if (!dataGuards.ok) return null;
@@ -188,13 +216,14 @@ async function intentarLoginGuardia(correo, password) {
     const guardVigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
     if (!guardVigenteOK) return null;
 
+    // ahora buscamos en usuarios para validar password y vigencia del usuario
     const resUser = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
     const dataUser = await resUser.json();
     if (!dataUser.ok || !dataUser.data) return null;
 
     const u = dataUser.data;
     const p = (u.password || "").trim();
-    const vUser = (u.vigente || "").trim().toLowerCase();
+    const vUser = (u.vigente || "").toString().trim().toLowerCase();
     const userVigenteOK = vUser === "" || vUser === "si" || vUser === "sí" || vUser === "true";
 
     if (p !== password || !userVigenteOK) return null;
@@ -215,7 +244,7 @@ async function intentarLoginUsuario(correo, password) {
     const u = data.data;
     const c = (u.correo || "").trim().toLowerCase();
     const p = (u.password || "").trim();
-    const v = (u.vigente || "").trim().toLowerCase();
+    const v = (u.vigente || "").toString().trim().toLowerCase();
 
     const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
     if (c === correo.toLowerCase() && p === password && vigenteOK) return u;

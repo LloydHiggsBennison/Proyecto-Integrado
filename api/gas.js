@@ -80,6 +80,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    /******************* GET *******************/
     if (req.method === "GET") {
       const action = (req.query.action || "").toString();
 
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
       return res.json({ ok: true, message: "API Supabase activa (GET)" });
     }
 
+    /******************* POST *******************/
     if (req.method === "POST") {
       const body = req.body || {};
       let action = body.action || body.Action || body.accion || "";
@@ -124,6 +126,7 @@ export default async function handler(req, res) {
       });
     }
 
+    /******************* OTROS MÉTODOS *******************/
     return res.status(405).json({ ok: false, message: "Método no permitido" });
   } catch (err) {
     console.error("Error en handler /api/gas:", err);
@@ -135,8 +138,10 @@ export default async function handler(req, res) {
  * GET HANDLERS
  ****************************************************/
 
+// Lista todos los usuarios (tabla usuarios)
 async function getUsers(req, res) {
   const { data: usuarios, error } = await supabase.from("usuarios").select("*");
+
   if (error) {
     console.error("getUsers error:", error);
     return res.status(500).json({ ok: false, message: "Error consultando usuarios" });
@@ -159,8 +164,10 @@ async function getUsers(req, res) {
   return res.json({ ok: true, data: salida });
 }
 
+// Busca usuario por email (login)
 async function getUserByEmail(req, res) {
   const email = (req.query.email || "").toString().trim().toLowerCase();
+
   if (!email) {
     return res.status(400).json({ ok: false, message: "Falta email" });
   }
@@ -180,38 +187,44 @@ async function getUserByEmail(req, res) {
     return res.json({ ok: false, message: "Usuario no encontrado" });
   }
 
-  // renovar/generar QR si aplica (para trabajadores normales)
+  const rolActual = usuario.rol || null;
+
+  // Si es guardia o RRHH NO forzamos QR (ellos no usan beneficio con QR)
+  const esGuardiaORRHH = rolActual === "guardia" || rolActual === "rrhh";
+
   let qrToken    = usuario.qr_token;
   let qrVigencia = usuario.qr_vigencia;
   let qrCaja     = usuario.qr_caja;
   const tipoContrato = usuario.tipo_contrato;
-
   let necesitaUpdate = false;
 
-  if (!qrToken || necesitaRenovarQR(qrVigencia)) {
-    qrToken    = generarTokenQR();
-    qrVigencia = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-    necesitaUpdate = true;
-  }
+  if (!esGuardiaORRHH) {
+    // renovar/generar QR para trabajadores normales
+    if (!qrToken || necesitaRenovarQR(qrVigencia)) {
+      qrToken    = generarTokenQR();
+      qrVigencia = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      necesitaUpdate = true;
+    }
 
-  const qrCajaEsperado = generarQRCajaPorContrato(tipoContrato);
-  if (qrCajaEsperado && qrCaja !== qrCajaEsperado) {
-    qrCaja = qrCajaEsperado;
-    necesitaUpdate = true;
-  }
+    const qrCajaEsperado = generarQRCajaPorContrato(tipoContrato);
+    if (qrCajaEsperado && qrCaja !== qrCajaEsperado) {
+      qrCaja = qrCajaEsperado;
+      necesitaUpdate = true;
+    }
 
-  if (necesitaUpdate) {
-    const { error: updError } = await supabase
-      .from("usuarios")
-      .update({
-        qr_token: qrToken,
-        qr_vigencia: qrVigencia,
-        qr_caja: qrCaja
-      })
-      .eq("id", usuario.id);
+    if (necesitaUpdate) {
+      const { error: updError } = await supabase
+        .from("usuarios")
+        .update({
+          qr_token:    qrToken,
+          qr_vigencia: qrVigencia,
+          qr_caja:     qrCaja
+        })
+        .eq("id", usuario.id);
 
-    if (updError) {
-      console.error("Error actualizando QR en getUserByEmail:", updError);
+      if (updError) {
+        console.error("Error actualizando QR en getUserByEmail:", updError);
+      }
     }
   }
 
@@ -228,13 +241,15 @@ async function getUserByEmail(req, res) {
       qrToken:       qrToken,
       qrCaja:        qrCaja,
       qrVigencia:    qrVigencia,
-      rol:           usuario.rol || null
+      rol:           rolActual
     }
   });
 }
 
+// Buscar usuario por QR token
 async function getUserByToken(req, res) {
   const token = (req.query.token || "").toString().trim();
+
   if (!token) {
     return res.status(400).json({ ok: false, message: "Falta token" });
   }
@@ -268,8 +283,10 @@ async function getUserByToken(req, res) {
   });
 }
 
+// Lista guardias
 async function getGuards(req, res) {
   const { data: guardias, error } = await supabase.from("guardias").select("*");
+
   if (error) {
     console.error("getGuards error:", error);
     return res.status(500).json({ ok: false, message: "Error consultando guardias" });
@@ -289,6 +306,7 @@ async function getGuards(req, res) {
   return res.json({ ok: true, data: rows });
 }
 
+// Lista nómina completa
 async function getNomina(req, res) {
   const { data: nomina, error } = await supabase
     .from("nomina_trabajadores")
@@ -314,6 +332,7 @@ async function getNomina(req, res) {
   return res.json({ ok: true, data: rows });
 }
 
+// Lista entregas
 async function getEntregas(req, res) {
   const { data: entregas, error } = await supabase
     .from("entregas")
@@ -342,7 +361,7 @@ async function getEntregas(req, res) {
  * NUEVO GET: RESUMEN RRHH (NÓMINA + ENTREGAS)
  ****************************************************/
 async function getRRHHResumen(req, res) {
-  // 1) Cargar nómina
+  // 1) Cargar nómina básica
   const { data: nomina, error: nomError } = await supabase
     .from("nomina_trabajadores")
     .select("nombre,apellido,rut,correo,sucursal");
@@ -358,7 +377,7 @@ async function getRRHHResumen(req, res) {
     return res.json({ ok: true, data: [] });
   }
 
-  // 2) Cargar entregas (solo correo es suficiente)
+  // 2) Cargar correos de entregas
   const { data: entregas, error: entError } = await supabase
     .from("entregas")
     .select("correo");
@@ -370,14 +389,14 @@ async function getRRHHResumen(req, res) {
       .json({ ok: false, message: "Error consultando entregas para RRHH" });
   }
 
-  // 3) Mapa de correos con entrega
+  // 3) Mapa de correos con al menos una entrega
   const entregadosSet = new Set();
   (entregas || []).forEach((e) => {
     const c = (e.correo || "").toString().trim().toLowerCase();
     if (c) entregadosSet.add(c);
   });
 
-  // 4) Armar resumen por trabajador
+  // 4) Construir resumen
   const resumen = nomina.map((r) => {
     const correo = (r.correo || "").toString().trim();
     const correoKey = correo.toLowerCase();
@@ -400,6 +419,7 @@ async function getRRHHResumen(req, res) {
  * POST HANDLERS
  ****************************************************/
 
+// Crear usuario (tabla usuarios) a partir de nómina / guardias
 async function createUser(req, res, data) {
   const correoReq   = (data.correo || data.email || "").toString().trim().toLowerCase();
   const passwordReq = (data.password || data.pass || "").toString().trim();
@@ -430,6 +450,7 @@ async function createUser(req, res, data) {
     console.error("createUser guardias error:", guardError);
   }
 
+  // si no está en ninguna de las dos → no puede crear
   if (!nominaMatch && !guardiaMatch) {
     return res.json({
       ok: false,
@@ -452,13 +473,14 @@ async function createUser(req, res, data) {
   let qrCaja     = "";
   let qrVigencia = null;
 
+  // solo trabajadores generan QR
   if (!esGuardia) {
     qrToken    = generarTokenQR();
     qrCaja     = generarQRCajaPorContrato(tipoContratoFinal);
     qrVigencia = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
   }
 
-  // 🔹 Rol automático según origen
+  // Rol automático según origen
   const rolFinal = esGuardia ? "guardia" : "trabajador";
 
   const { error } = await supabase.from("usuarios").insert([
@@ -492,6 +514,7 @@ async function createUser(req, res, data) {
   });
 }
 
+// Registrar entrega en tabla entregas
 async function logEntrega(req, res, data) {
   const { error } = await supabase.from("entregas").insert([
     {
