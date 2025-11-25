@@ -1,0 +1,63 @@
+<!-- index_RRHH.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel RRHH</title>
+  <link rel="stylesheet" href="styles_RRHH.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="saludo">Panel RRHH</h1>
+      <p id="subtitulo" class="subtitulo-header">Resumen de beneficios por trabajador</p>
+    </div>
+    <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="main-content">
+    <!-- CONTADORES -->
+    <section class="stats-grid">
+      <article class="stat-card entregados">
+        <p class="stat-label">Beneficios entregados</p>
+        <p class="stat-value" id="stat-entregados">-</p>
+        <p class="stat-caption" id="stat-total">Total en nómina: -</p>
+      </article>
+
+      <article class="stat-card no-entregados">
+        <p class="stat-label">Beneficios no entregados</p>
+        <p class="stat-value" id="stat-no-entregados">-</p>
+        <p class="stat-caption">Trabajadores sin registro de entrega</p>
+      </article>
+    </section>
+
+    <!-- NAVBAR / FILTROS -->
+    <section class="toolbar">
+      <h2>Listado de trabajadores</h2>
+      <div class="filters">
+        <input
+          id="filtro-texto"
+          type="search"
+          placeholder="Buscar por nombre, apellido o sucursal..."
+          autocomplete="off"
+        />
+      </div>
+    </section>
+
+    <!-- TABLA -->
+    <section id="tabla-container">
+      <!-- El JS pinta aquí la tabla de trabajadores -->
+    </section>
+  </main>
+
+  <script>
+    function cerrarSesion() {
+      localStorage.removeItem("sesionActual");
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="scripts_RRHH.js"></script>
+</body>
+</html>

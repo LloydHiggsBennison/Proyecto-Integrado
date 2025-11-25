@@ -1,4 +1,3 @@
-// api/gas.js
 import { createClient } from "@supabase/supabase-js";
 
 /****************************************************
@@ -84,12 +83,14 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const action = (req.query.action || "").toString();
 
-      if (action === "getUsers")       return await getUsers(req, res);
-      if (action === "getUserByEmail") return await getUserByEmail(req, res);
-      if (action === "getUserByToken") return await getUserByToken(req, res);
-      if (action === "getGuards")      return await getGuards(req, res);
-      if (action === "getNomina")      return await getNomina(req, res);
-      if (action === "getEntregas")    return await getEntregas(req, res);
+      if (action === "getUsers")        return await getUsers(req, res);
+      if (action === "getUserByEmail")  return await getUserByEmail(req, res);
+      if (action === "getUserByToken")  return await getUserByToken(req, res);
+      if (action === "getGuards")       return await getGuards(req, res);
+      if (action === "getNomina")       return await getNomina(req, res);
+      if (action === "getEntregas")     return await getEntregas(req, res);
+      // 🔹 NUEVA ACCIÓN: resumen RRHH (nómina + entregas)
+      if (action === "getRRHHResumen")  return await getRRHHResumen(req, res);
 
       return res.json({ ok: true, message: "API Supabase activa (GET)" });
     }
@@ -151,7 +152,8 @@ async function getUsers(req, res) {
     vigente:       u.vigente,
     qrToken:       u.qr_token,
     qrCaja:        u.qr_caja,
-    qrVigencia:    u.qr_vigencia
+    qrVigencia:    u.qr_vigencia,
+    rol:           u.rol || null
   }));
 
   return res.json({ ok: true, data: salida });
@@ -178,7 +180,7 @@ async function getUserByEmail(req, res) {
     return res.json({ ok: false, message: "Usuario no encontrado" });
   }
 
-  // renovar/generar QR si aplica
+  // renovar/generar QR si aplica (para trabajadores normales)
   let qrToken    = usuario.qr_token;
   let qrVigencia = usuario.qr_vigencia;
   let qrCaja     = usuario.qr_caja;
@@ -225,7 +227,8 @@ async function getUserByEmail(req, res) {
       vigente:       usuario.vigente,
       qrToken:       qrToken,
       qrCaja:        qrCaja,
-      qrVigencia:    qrVigencia
+      qrVigencia:    qrVigencia,
+      rol:           usuario.rol || null
     }
   });
 }
@@ -336,6 +339,64 @@ async function getEntregas(req, res) {
 }
 
 /****************************************************
+ * NUEVO GET: RESUMEN RRHH (NÓMINA + ENTREGAS)
+ ****************************************************/
+async function getRRHHResumen(req, res) {
+  // 1) Cargar nómina
+  const { data: nomina, error: nomError } = await supabase
+    .from("nomina_trabajadores")
+    .select("nombre,apellido,rut,correo,sucursal");
+
+  if (nomError) {
+    console.error("getRRHHResumen nomina error:", nomError);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Error consultando nómina para RRHH" });
+  }
+
+  if (!nomina || nomina.length === 0) {
+    return res.json({ ok: true, data: [] });
+  }
+
+  // 2) Cargar entregas (solo correo es suficiente)
+  const { data: entregas, error: entError } = await supabase
+    .from("entregas")
+    .select("correo");
+
+  if (entError) {
+    console.error("getRRHHResumen entregas error:", entError);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Error consultando entregas para RRHH" });
+  }
+
+  // 3) Mapa de correos con entrega
+  const entregadosSet = new Set();
+  (entregas || []).forEach((e) => {
+    const c = (e.correo || "").toString().trim().toLowerCase();
+    if (c) entregadosSet.add(c);
+  });
+
+  // 4) Armar resumen por trabajador
+  const resumen = nomina.map((r) => {
+    const correo = (r.correo || "").toString().trim();
+    const correoKey = correo.toLowerCase();
+    const entregado = correoKey && entregadosSet.has(correoKey);
+
+    return {
+      nombre:        r.nombre || "",
+      apellido:      r.apellido || "",
+      rut:           r.rut || "",
+      correo:        correo,
+      sucursal:      r.sucursal || "",
+      estadoEntrega: entregado ? "ENTREGADO" : "NO ENTREGADO"
+    };
+  });
+
+  return res.json({ ok: true, data: resumen });
+}
+
+/****************************************************
  * POST HANDLERS
  ****************************************************/
 
@@ -397,6 +458,9 @@ async function createUser(req, res, data) {
     qrVigencia = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
   }
 
+  // 🔹 Rol automático según origen
+  const rolFinal = esGuardia ? "guardia" : "trabajador";
+
   const { error } = await supabase.from("usuarios").insert([
     {
       nombre:         nombreFinal,
@@ -408,7 +472,8 @@ async function createUser(req, res, data) {
       vigente:        vigenteFinal,
       qr_token:       qrToken,
       qr_caja:        qrCaja,
-      qr_vigencia:    qrVigencia
+      qr_vigencia:    qrVigencia,
+      rol:            rolFinal
     }
   ]);
 
@@ -422,7 +487,8 @@ async function createUser(req, res, data) {
     source: nominaMatch ? "nomina" : "guardia",
     qrToken,
     qrCaja,
-    qrVigencia
+    qrVigencia,
+    rol: rolFinal
   });
 }
 

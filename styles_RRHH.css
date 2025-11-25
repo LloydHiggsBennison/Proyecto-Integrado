@@ -1,0 +1,205 @@
+/* styles_RRHH.css */
+
+body {
+  background: #eef2ff;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* HEADER */
+
+header {
+  background: #1f2937;
+  color: #fff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.subtitulo-header {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.logout {
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.logout:hover {
+  background: #b91c1c;
+}
+
+/* LAYOUT PRINCIPAL */
+
+.main-content {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+}
+
+/* CARDS DE STATS */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 15px -10px rgba(15, 23, 42, 0.25);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin: 0 0 0.5rem;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.stat-card.entregados .stat-value {
+  color: #16a34a;
+}
+
+.stat-card.no-entregados .stat-value {
+  color: #dc2626;
+}
+
+/* TOOLBAR / NAVBAR SUPERIOR */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.toolbar h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filters input[type="search"] {
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  min-width: 260px;
+  max-width: 360px;
+  outline: none;
+}
+
+.filters input[type="search"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+/* TABLA */
+
+.tabla-wrapper {
+  background: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 12px 18px -10px rgba(15, 23, 42, 0.22);
+}
+
+.tabla-trabajadores {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla-trabajadores thead {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.tabla-trabajadores th,
+.tabla-trabajadores td {
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabla-trabajadores th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tabla-trabajadores tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+/* PASTILLA DE ESTADO */
+
+.estado-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.estado-ok {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.estado-pendiente {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+/* MENSAJES VACÍOS */
+
+.empty-state {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
