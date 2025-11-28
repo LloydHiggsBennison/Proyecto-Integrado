@@ -1,0 +1,156 @@
+<!-- index_Admin.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Administrador</title>
+  <link rel="stylesheet" href="styles_Admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- SheetJS para exportación a Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="saludo">Panel Administrador</h1>
+      <p id="subtitulo" class="subtitulo-header">Gestión completa de beneficios y trabajadores</p>
+    </div>
+    <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="main-content">
+    <!-- ESTADÍSTICAS PRINCIPALES -->
+    <section class="stats-grid">
+      <article class="stat-card total">
+        <p class="stat-label">Total Trabajadores</p>
+        <p class="stat-value" id="stat-total">-</p>
+        <p class="stat-caption">En nómina</p>
+      </article>
+
+      <article class="stat-card entregados">
+        <p class="stat-label">Beneficios Entregados</p>
+        <p class="stat-value" id="stat-entregados">-</p>
+        <p class="stat-caption" id="stat-porcentaje-entregado">-</p>
+      </article>
+
+      <article class="stat-card pendientes">
+        <p class="stat-label">Pendientes de Entrega</p>
+        <p class="stat-value" id="stat-pendientes">-</p>
+        <p class="stat-caption" id="stat-porcentaje-pendiente">-</p>
+      </article>
+    </section>
+
+    <!-- ESTADÍSTICAS POR SUCURSAL -->
+    <section id="stats-sucursal" class="sucursal-stats">
+      <!-- Se genera dinámicamente con JS -->
+    </section>
+
+    <!-- TOOLBAR / ACCIONES -->
+    <section class="toolbar">
+      <h2>Gestión de Trabajadores</h2>
+      <div class="toolbar-actions">
+        <input
+          id="filtro-texto"
+          type="search"
+          placeholder="Buscar por nombre, apellido, RUT, correo o sucursal..."
+          autocomplete="off"
+        />
+        <button class="btn-primary" onclick="abrirModalNuevo()">
+          <span>➕</span> Nuevo Trabajador
+        </button>
+        <button class="btn-export" onclick="exportarExcel()">
+          <span>📊</span> Exportar a Excel
+        </button>
+      </div>
+    </section>
+
+    <!-- TABLA DE TRABAJADORES -->
+    <section id="tabla-container">
+      <!-- El JS genera la tabla aquí -->
+    </section>
+  </main>
+
+  <!-- MODAL PARA CRUD -->
+  <div id="modal-trabajador" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-titulo">Nuevo Trabajador</h2>
+        <button class="modal-close" onclick="cerrarModal()">&times;</button>
+      </div>
+      <form id="form-trabajador" class="modal-body">
+        <input type="hidden" id="trabajador-id" />
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trabajador-nombre">Nombre *</label>
+            <input type="text" id="trabajador-nombre" required />
+          </div>
+          <div class="form-group">
+            <label for="trabajador-apellido">Apellido *</label>
+            <input type="text" id="trabajador-apellido" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trabajador-rut">RUT *</label>
+            <input type="text" id="trabajador-rut" required placeholder="12.345.678-9" />
+          </div>
+          <div class="form-group">
+            <label for="trabajador-correo">Correo *</label>
+            <input type="email" id="trabajador-correo" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trabajador-telefono">Teléfono</label>
+            <input type="tel" id="trabajador-telefono" placeholder="+56 9 1234 5678" />
+          </div>
+          <div class="form-group">
+            <label for="trabajador-sucursal">Sucursal *</label>
+            <input type="text" id="trabajador-sucursal" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="trabajador-direccion">Dirección</label>
+          <input type="text" id="trabajador-direccion" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trabajador-contrato">Tipo de Contrato *</label>
+            <select id="trabajador-contrato" required>
+              <option value="">Seleccionar...</option>
+              <option value="Plazo Fijo">Plazo Fijo</option>
+              <option value="Indefinido">Indefinido</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="trabajador-vigente">Vigente *</label>
+            <select id="trabajador-vigente" required>
+              <option value="SI">Sí</option>
+              <option value="NO">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function cerrarSesion() {
+      localStorage.removeItem("sesionActual");
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="scripts_Admin.js"></script>
+</body>
+</html>

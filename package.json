@@ -2,7 +2,9 @@
   "name": "proyecto-integrado",
   "version": "1.0.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "start": "vercel dev"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0"
   }

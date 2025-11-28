@@ -1,0 +1,63 @@
+# ============================
+# 📦 DEPENDENCIAS
+# ============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ============================
+# 🔐 VARIABLES DE ENTORNO
+# ============================
+.env
+.env.*
+!.env.example
+
+# ============================
+# 🚀 VERCEL / DEPLOY
+# ============================
+.vercel/
+.vercelignore
+
+# ============================
+# 🔥 LOGS
+# ============================
+logs/
+*.log
+*.log.*
+debug.log
+
+# ============================
+# 🧹 SISTEMA / EDITOR
+# ============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ============================
+# 🛠️ BUILD / CACHE
+# ============================
+dist/
+build/
+.cache/
+.next/
+out/
+coverage/
+
+# ============================
+# 📁 ARCHIVOS TEMPORALES
+# ============================
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ============================
+# 🔧 API / GAS
+# ============================
+api/node_modules/
+api/*.log
+api/.env
+api/.env.*

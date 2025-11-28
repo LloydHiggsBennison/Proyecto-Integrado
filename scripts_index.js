@@ -78,6 +78,18 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        // ADMIN → panel Admin
+        if (rol === "admin") {
+          localStorage.setItem("sesionActual", JSON.stringify({
+            rol: "admin",
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            correo: usuario.correo
+          }));
+          window.location.href = "index_Admin.html";
+          return;
+        }
+
         // trabajador / usuario normal
         localStorage.setItem("sesionActual", JSON.stringify({
           rol: "usuario",
