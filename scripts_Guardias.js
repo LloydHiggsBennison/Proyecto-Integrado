@@ -177,7 +177,11 @@ async function escanearFlujo(panelContenido, sesion) {
   // Mostrar spinner mientras se busca al trabajador
   mostrarSpinnerModal("Buscando información del trabajador...");
 
-  const trabajador = await buscarTrabajadorPorToken(tokenTrabajador);
+  // Esperar mínimo 3 segundos para que el spinner sea visible
+  const [trabajador] = await Promise.all([
+    buscarTrabajadorPorToken(tokenTrabajador),
+    new Promise(resolve => setTimeout(resolve, 3000))
+  ]);
 
   // Ocultar spinner después de la búsqueda
   ocultarSpinnerModal();
