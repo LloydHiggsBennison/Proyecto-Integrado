@@ -71,3 +71,71 @@
       background: #fee2e2;
       border-color: #fecaca;
     }
+
+    /* ============================================================
+       SPINNER MODAL
+    =============================================================== */
+    .spinner-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+
+    .spinner-modal-content {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 2.5rem 3rem;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      max-width: 90%;
+      animation: fadeInScale 0.3s ease-out;
+    }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid #e5e7eb;
+      border-top-color: #15803d;
+      border-radius: 50%;
+      margin: 0 auto 1.5rem;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner-modal-content h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+      color: #15803d;
+      font-weight: 700;
+    }
+
+    .spinner-modal-content p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #6b7280;
+    }

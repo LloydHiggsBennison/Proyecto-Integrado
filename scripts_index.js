@@ -48,7 +48,20 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 2) login general en tabla usuarios (trabajador / rrhh / guardia fallback)
+      // 2) login como testing
+      const testing = await intentarLoginTesting(correo, password);
+      if (testing) {
+        localStorage.setItem("sesionActual", JSON.stringify({
+          rol: "testing",
+          nombre: testing.nombre,
+          apellido: testing.apellido,
+          correo: testing.correo || correo
+        }));
+        window.location.href = "index_Testing.html";
+        return;
+      }
+
+      // 3) login general en tabla usuarios (trabajador / rrhh / guardia fallback)
       const usuario = await intentarLoginUsuario(correo, password);
       if (usuario) {
         const rol = (usuario.rol || "").toString().trim().toLowerCase();
@@ -264,6 +277,31 @@ async function intentarLoginUsuario(correo, password) {
     return null;
   } catch (err) {
     console.error("Error login usuario:", err);
+    return null;
+  }
+}
+
+async function intentarLoginTesting(correo, password) {
+  try {
+    const res = await fetch(`${API_URL}?action=getUserByEmail&email=${encodeURIComponent(correo)}`);
+    const data = await res.json();
+    if (!data.ok || !data.data) return null;
+
+    const u = data.data;
+    const c = (u.correo || "").trim().toLowerCase();
+    const p = (u.password || "").trim();
+    const v = (u.vigente || "").toString().trim().toLowerCase();
+    const rol = (u.rol || "").toString().trim().toLowerCase();
+
+    // Solo permitir login si el rol es testing
+    if (rol !== "testing") return null;
+
+    const vigenteOK = v === "" || v === "si" || v === "sí" || v === "true";
+    if (c === correo.toLowerCase() && p === password && vigenteOK) return u;
+
+    return null;
+  } catch (err) {
+    console.error("Error login testing:", err);
     return null;
   }
 }

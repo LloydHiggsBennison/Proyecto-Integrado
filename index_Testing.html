@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testing Producción</title>
+  <link rel="stylesheet" href="styles_Testing.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <header>
+    <h1 id="saludo">🧪 Testing Producción</h1>
+    <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="main-content">
+    <div class="welcome-banner">
+      <h2>Perfil de Testing</h2>
+      <p>Prueba el flujo completo de escaneo con códigos QR reutilizables.</p>
+    </div>
+
+    <!-- QR del Usuario -->
+    <section class="qr-section-main">
+      <div id="usuario-qr"></div>
+    </section>
+
+    <!-- QR de Cajas -->
+    <section class="qr-section">
+      <h3>📦 Códigos QR de Cajas</h3>
+      <div class="qr-grid" id="cajas-grid"></div>
+    </section>
+  </main>
+
+  <script src="scripts_Testing.js"></script>
+</body>
+</html>

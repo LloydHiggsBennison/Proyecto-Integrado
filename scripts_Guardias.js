@@ -122,11 +122,39 @@ function pedirTokenQR(titulo, label) {
       },
       willClose: () => {
         if (scanner) {
-          scanner.stop().then(() => scanner.clear()).catch(() => {});
+          scanner.stop().then(() => scanner.clear()).catch(() => { });
         }
       }
     });
   });
+}
+
+/* ============================================================
+   FUNCIONES PARA SPINNER MODAL
+=============================================================== */
+function mostrarSpinnerModal(mensaje = "Buscando información...") {
+  // Evitar múltiples spinners
+  const existente = document.getElementById("spinner-modal-overlay");
+  if (existente) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "spinner-modal-overlay";
+  overlay.className = "spinner-modal-overlay";
+  overlay.innerHTML = `
+    <div class="spinner-modal-content">
+      <div class="spinner"></div>
+      <h3>Procesando...</h3>
+      <p>${mensaje}</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function ocultarSpinnerModal() {
+  const overlay = document.getElementById("spinner-modal-overlay");
+  if (overlay) {
+    overlay.remove();
+  }
 }
 
 /* ============================================================
@@ -146,7 +174,14 @@ async function escanearFlujo(panelContenido, sesion) {
     return;
   }
 
+  // Mostrar spinner mientras se busca al trabajador
+  mostrarSpinnerModal("Buscando información del trabajador...");
+
   const trabajador = await buscarTrabajadorPorToken(tokenTrabajador);
+
+  // Ocultar spinner después de la búsqueda
+  ocultarSpinnerModal();
+
   if (!trabajador) {
     Swal.fire({
       icon: "error",
