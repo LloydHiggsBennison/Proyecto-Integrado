@@ -209,9 +209,14 @@ async function escanearFlujo(panelContenido, sesion) {
   /* ============================================================
      VALIDACIONES
   =============================================================== */
+  // Detectar testing: permite cualquier caja
+  const esTesting = (trabajador.correo || "").toLowerCase().includes("test");
+  console.log("🧪 Es Testing:", esTesting, "| Correo:", trabajador.correo);
+
   const qrCajaHoja = (trabajador.qrCaja || "").toLowerCase();
   const qrCajaLeida = tokenCaja.toLowerCase();
-  const coincideQR = qrCajaHoja && qrCajaHoja === qrCajaLeida;
+  const cajaValida = qrCajaLeida.includes("caja grande") || qrCajaLeida.includes("caja pequeña");
+  const coincideQR = esTesting ? cajaValida : (qrCajaHoja && qrCajaHoja === qrCajaLeida);
 
   const contrato = (trabajador.tipoContrato || "").toLowerCase();
   const tipoEsperado = contrato.includes("indefinido")
@@ -220,7 +225,7 @@ async function escanearFlujo(panelContenido, sesion) {
       ? "caja pequeña"
       : "";
 
-  const coincideTipo = tipoEsperado && qrCajaLeida.includes(tipoEsperado);
+  const coincideTipo = esTesting ? cajaValida : (tipoEsperado && qrCajaLeida.includes(tipoEsperado));
 
   panelContenido.innerHTML = `
     <h3>Entrega de cajas</h3>
