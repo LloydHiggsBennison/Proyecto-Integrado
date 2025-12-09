@@ -119,7 +119,7 @@ function mostrarQRCajas() {
         },
         {
             tipo: "Caja Pequeña",
-            identificador: "caja pequeña",
+            identificador: "caja pequena",
             descripcion: "Para contratos a plazo fijo",
             emoji: "📦"
         }
