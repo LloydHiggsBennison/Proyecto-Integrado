@@ -219,7 +219,17 @@ async function escanearFlujo(panelContenido, sesion) {
 
   const qrCajaHoja = (trabajador.qrCaja || "").toLowerCase();
   const qrCajaLeida = tokenCaja.toLowerCase();
-  const cajaValida = qrCajaLeida.includes("caja grande") || qrCajaLeida.includes("caja pequeña");
+
+  // Normalizar texto para evitar problemas con ñ y otros caracteres especiales
+  const normalizar = (texto) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/g, "n");
+  const cajaLeidaNormalizada = normalizar(qrCajaLeida);
+
+  console.log("📦 DEBUG - QR Original:", qrCajaLeida, "| Normalizado:", cajaLeidaNormalizada);
+
+  const cajaValida = cajaLeidaNormalizada.includes("caja grande") ||
+    cajaLeidaNormalizada.includes("caja pequena") ||
+    qrCajaLeida.includes("caja grande") ||
+    qrCajaLeida.includes("caja pequeña");
   const coincideQR = esTesting ? cajaValida : (qrCajaHoja && qrCajaHoja === qrCajaLeida);
 
   const contrato = (trabajador.tipoContrato || "").toLowerCase();
