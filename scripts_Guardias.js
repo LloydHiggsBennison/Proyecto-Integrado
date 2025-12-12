@@ -264,7 +264,53 @@ async function escanearFlujo(panelContenido, sesion) {
     return;
   }
 
-  /* 3️⃣ Registrar entrega */
+  /* 3️⃣ Validar que el token no haya sido usado previamente */
+  panelContenido.innerHTML += `<p style="color:blue;">⏳ Verificando si el código QR ya ha sido utilizado...</p>`;
+
+  try {
+    const validationRes = await fetch(
+      `${API_URL}?action=checkTokenUsage&token=${encodeURIComponent(trabajador.qrToken)}&correo=${encodeURIComponent(trabajador.correo)}`
+    );
+    const validationData = await validationRes.json();
+
+    if (!validationData.ok) {
+      Swal.fire({
+        icon: "error",
+        title: "Error de validación",
+        text: validationData.message || "No se pudo verificar el código QR."
+      });
+      panelContenido.innerHTML += `<p style="color:red;">❌ Error al verificar el código QR.</p>`;
+      return;
+    }
+
+    if (!validationData.canUse) {
+      Swal.fire({
+        icon: "error",
+        title: "Código QR ya utilizado",
+        html: `<p>${validationData.message}</p>`,
+        confirmButtonText: "Entendido"
+      });
+      panelContenido.innerHTML += `<p style="color:red;">❌ ${validationData.message}</p>`;
+      return;
+    }
+
+    // Si es testing, mostrar mensaje informativo
+    if (validationData.isTesting) {
+      console.log("🧪 Perfil testing detectado - permitiendo reutilización de QR");
+    }
+
+  } catch (err) {
+    console.error("Error validando token:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo verificar el código QR. Intenta nuevamente."
+    });
+    panelContenido.innerHTML += `<p style="color:red;">❌ Error al verificar el código QR.</p>`;
+    return;
+  }
+
+  /* 4️⃣ Registrar entrega */
   panelContenido.innerHTML += `<p style="color:green;">Validación correcta. Registrando entrega...</p>`;
 
   try {

@@ -90,6 +90,8 @@ export default async function handler(req, res) {
       if (action === "getGuards") return await getGuards(req, res);
       if (action === "getNomina") return await getNomina(req, res);
       if (action === "getEntregas") return await getEntregas(req, res);
+      // 🔹 NUEVA ACCIÓN: validar uso de token QR
+      if (action === "checkTokenUsage") return await checkTokenUsage(req, res);
       // 🔹 NUEVA ACCIÓN: resumen RRHH (nómina + entregas)
       if (action === "getRRHHResumen") return await getRRHHResumen(req, res);
       // 🔹 NUEVAS ACCIONES ADMIN
@@ -372,6 +374,69 @@ async function getEntregas(req, res) {
   }));
 
   return res.json({ ok: true, data: rows });
+}
+
+// Verificar si un token QR ya ha sido utilizado
+async function checkTokenUsage(req, res) {
+  const token = (req.query.token || "").toString().trim();
+  const correo = (req.query.correo || "").toString().trim().toLowerCase();
+
+  if (!token) {
+    return res.status(400).json({ ok: false, message: "Falta token" });
+  }
+
+  if (!correo) {
+    return res.status(400).json({ ok: false, message: "Falta correo" });
+  }
+
+  // Buscar si el token ya existe en entregas
+  const { data: entregas, error } = await supabase
+    .from("entregas")
+    .select("correo, fecha_entrega")
+    .eq("qr_token", token)
+    .order("fecha_entrega", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error("checkTokenUsage error:", error);
+    return res.status(500).json({ ok: false, message: "Error verificando token" });
+  }
+
+  // Si no hay entregas con ese token, se puede usar
+  if (!entregas || entregas.length === 0) {
+    return res.json({ ok: true, canUse: true });
+  }
+
+  // Verificar si es perfil testing
+  const esTesting = correo.includes("test");
+
+  if (esTesting) {
+    // Perfil testing puede reutilizar
+    return res.json({ ok: true, canUse: true, isTesting: true });
+  }
+
+  // No es testing y el token ya fue usado
+  const entregaPrevia = entregas[0];
+  const fechaEntrega = new Date(entregaPrevia.fecha_entrega);
+
+  // Formatear fecha a hora chilena (UTC-3)
+  const fechaFormateada = fechaEntrega.toLocaleString("es-CL", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+
+  return res.json({
+    ok: true,
+    canUse: false,
+    message: `Este código QR ya fue utilizado el ${fechaFormateada}`,
+    fechaEntrega: fechaFormateada
+  });
 }
 
 /****************************************************
