@@ -60,7 +60,7 @@ Sistema web para la gestión y entrega de beneficios a trabajadores de 3Montes L
 
 1. **Clonar el repositorio**
    ```bash
-   git clone <url-del-repositorio>
+   git clone https://github.com/LloydHiggsBennison/Proyecto-Integrado
    cd Proyecto-Integrado
    ```
 
@@ -221,9 +221,9 @@ Proyecto desarrollado para 3Montes Lucchetti (Grupo Nutresa).
 
 ## 👨‍💻 Desarrollo
 
-Desarrollado como Proyecto Integrado - 2024
+Desarrollado como Proyecto Integrado - 2025
 
 ---
 
 **Versión**: 1.0  
-**Última actualización**: Diciembre 2024
+**Última actualización**: Diciembre 2025
