@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Administrador</title>
-  <link rel="stylesheet" href="styles_Admin.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- SheetJS para exportación a Excel -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -148,9 +148,9 @@
   <script>
     function cerrarSesion() {
       localStorage.removeItem("sesionActual");
-      window.location.href = "index.html";
+      window.location.href = "/index.html";
     }
   </script>
-  <script src="scripts_Admin.js"></script>
+  <script src="../js/admin.js"></script>
 </body>
 </html>

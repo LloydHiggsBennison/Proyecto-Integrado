@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
             title: "Acceso restringido",
             text: "Debes iniciar sesión como usuario de testing."
         }).then(() => {
-            window.location.href = "index.html";
+            window.location.href = "/index.html";
         });
         return;
     }
@@ -159,12 +159,4 @@ function mostrarQRCajas() {
             }
         }, 100);
     });
-}
-
-/* ============================================================
-   CERRAR SESIÓN
-=============================================================== */
-function cerrarSesion() {
-    localStorage.removeItem("sesionActual");
-    window.location.href = "index.html";
 }

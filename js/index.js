@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
           correo: guardia.correo || correo,
           sucursal: guardia.sucursal || ""
         }));
-        window.location.href = "index_Guardia.html";
+        window.location.href = "pages/guardia.html";
         return;
       }
 
@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
           apellido: testing.apellido,
           correo: testing.correo || correo
         }));
-        window.location.href = "index_Testing.html";
+        window.location.href = "pages/testing.html";
         return;
       }
 
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
             correo: usuario.correo,
             sucursal: usuario.sucursal || ""
           }));
-          window.location.href = "index_Guardia.html";
+          window.location.href = "pages/guardia.html";
           return;
         }
 
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
             apellido: usuario.apellido,
             correo: usuario.correo
           }));
-          window.location.href = "index_RRHH.html";
+          window.location.href = "pages/rrhh.html";
           return;
         }
 
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
             apellido: usuario.apellido,
             correo: usuario.correo
           }));
-          window.location.href = "index_Admin.html";
+          window.location.href = "pages/admin.html";
           return;
         }
 
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
           vigente: usuario.vigente
         }));
 
-        window.location.href = "index_Usuario.html";
+        window.location.href = "pages/usuario.html";
         return;
       }
 
