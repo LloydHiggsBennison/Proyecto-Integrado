@@ -90,11 +90,8 @@ export default async function handler(req, res) {
       if (action === "getGuards") return await getGuards(req, res);
       if (action === "getNomina") return await getNomina(req, res);
       if (action === "getEntregas") return await getEntregas(req, res);
-      // 🔹 NUEVA ACCIÓN: validar uso de token QR
       if (action === "checkTokenUsage") return await checkTokenUsage(req, res);
-      // 🔹 NUEVA ACCIÓN: resumen RRHH (nómina + entregas)
       if (action === "getRRHHResumen") return await getRRHHResumen(req, res);
-      // 🔹 NUEVAS ACCIONES ADMIN
       if (action === "getAdminStats") return await getAdminStats(req, res);
       if (action === "getNominaComplete") return await getNominaComplete(req, res);
       if (action === "getExportData") return await getExportData(req, res);

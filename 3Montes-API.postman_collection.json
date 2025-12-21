@@ -1,0 +1,325 @@
+{
+    "info": {
+        "name": "3Montes - Sistema de Beneficios API",
+        "description": "Colección de endpoints para el sistema de gestión de beneficios de 3Montes Lucchetti",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "3montes-api"
+    },
+    "item": [
+        {
+            "name": "Usuarios",
+            "item": [
+                {
+                    "name": "Obtener todos los usuarios",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=getUsers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "getUsers"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Obtener usuario por email",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=getUserByEmail&email=ejemplo@email.cl",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "getUserByEmail"
+                                },
+                                {
+                                    "key": "email",
+                                    "value": "ejemplo@email.cl",
+                                    "description": "Email del usuario a buscar"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crear usuario",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"createUser\",\n  \"correo\": \"nuevo@email.cl\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/gas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Nómina",
+            "item": [
+                {
+                    "name": "Obtener nómina completa",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=getNomina",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "getNomina"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crear trabajador",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"createTrabajador\",\n  \"nombre\": \"Juan\",\n  \"apellido\": \"Pérez\",\n  \"rut\": \"12.345.678-9\",\n  \"correo\": \"juan.perez@3montes.cl\",\n  \"telefono\": \"+56912345678\",\n  \"sucursal\": \"Santiago\",\n  \"direccion\": \"Av. Principal 123\",\n  \"tipoContrato\": \"Indefinido\",\n  \"vigente\": \"SI\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/gas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Actualizar trabajador",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"updateTrabajador\",\n  \"id\": \"ID_DEL_TRABAJADOR\",\n  \"nombre\": \"Juan\",\n  \"apellido\": \"Pérez\",\n  \"rut\": \"12.345.678-9\",\n  \"correo\": \"juan.perez@3montes.cl\",\n  \"telefono\": \"+56912345678\",\n  \"sucursal\": \"Santiago\",\n  \"direccion\": \"Av. Principal 123\",\n  \"tipoContrato\": \"Indefinido\",\n  \"vigente\": \"SI\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/gas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Eliminar trabajador",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"deleteTrabajador\",\n  \"id\": \"ID_DEL_TRABAJADOR\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/gas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Guardias",
+            "item": [
+                {
+                    "name": "Obtener todos los guardias",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=getGuards",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "getGuards"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Entregas",
+            "item": [
+                {
+                    "name": "Registrar entrega de beneficio",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"registrarEntrega\",\n  \"correoTrabajador\": \"trabajador@3montes.cl\",\n  \"tipoCaja\": \"caja grande\",\n  \"correoGuardia\": \"guardia@3montes.cl\",\n  \"fecha\": \"2025-12-13\",\n  \"hora\": \"15:30\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/gas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Obtener entregas",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=getEntregas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "getEntregas"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verificar entrega por trabajador",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/gas?action=verificarEntrega&correo=trabajador@3montes.cl",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "gas"
+                            ],
+                            "query": [
+                                {
+                                    "key": "action",
+                                    "value": "verificarEntrega"
+                                },
+                                {
+                                    "key": "correo",
+                                    "value": "trabajador@3montes.cl"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        }
+    ]
+}
